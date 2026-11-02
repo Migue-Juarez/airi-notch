@@ -1,0 +1,190 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+APP_HOME="${XDG_DATA_HOME:-$HOME/.local/share}/voice-to-terminal"
+WHISPER_BIN="$APP_HOME/whisper.cpp/build/bin/whisper-cli"
+MODEL="$APP_HOME/models/ggml-base.bin"
+ARECORD="$(command -v arecord || true)"
+NOTIFY="$(command -v notify-send || true)"
+XDO="$APP_HOME/toolchain/usr/bin/xdotool"
+MULTIARCH="$(cc -print-multiarch 2>/dev/null || true)"
+LOCAL_LIB="$APP_HOME/toolchain/usr/lib/$MULTIARCH"
+
+notify() {
+    [[ -z "${VOICE_TO_TERMINAL_QUIET:-}" ]] || return 0
+    if [[ -n "$NOTIFY" ]]; then
+        "$NOTIFY" --app-name="Voice to Terminal" "$1" "$2" || printf 'voice-to-terminal: no se pudo mostrar la notificación\n' >&2
+    else
+        printf 'voice-to-terminal: notify-send no está instalado\n' >&2
+    fi
+}
+
+fail() {
+    notify "Error" "$1"
+    printf 'voice-to-terminal: %s\n' "$1" >&2
+    exit 1
+}
+
+MODE="${1:-}"
+if [[ "$#" -gt 1 || ( -n "$MODE" && "$MODE" != "--cancel" && "$MODE" != "--start" && "$MODE" != "--stop" ) ]]; then
+    fail "Uso: voice-to-terminal [--start|--stop|--cancel]"
+fi
+
+if [[ "${XDG_SESSION_TYPE:-}" != "x11" ]]; then
+    fail "Esta instalación requiere X11; no se intentará simular teclado en Wayland."
+fi
+[[ -x "$ARECORD" ]] || fail "No se encontró arecord."
+if [[ "$MODE" != "--cancel" ]]; then
+    [[ -x "$WHISPER_BIN" ]] || fail "No se encontró whisper-cli. Ejecuta install.sh."
+    [[ -r "$MODEL" ]] || fail "No se encontró el modelo local. Ejecuta install.sh."
+    [[ -x "$XDO" ]] || fail "No se encontró xdotool local. Ejecuta install.sh."
+    [[ -n "$MULTIARCH" && -d "$LOCAL_LIB" ]] || fail "No se encontró la biblioteca local de xdotool."
+fi
+
+if [[ -n "${XDG_RUNTIME_DIR:-}" ]]; then
+    STATE_DIR="$XDG_RUNTIME_DIR/voice-to-terminal"
+else
+    STATE_DIR="$HOME/.cache/voice-to-terminal/runtime"
+fi
+if [[ -L "$STATE_DIR" ]]; then
+    fail "El directorio de estado no puede ser un enlace simbólico."
+fi
+mkdir -p "$STATE_DIR"
+[[ "$(stat -c '%u' "$STATE_DIR")" == "$(id -u)" ]] || fail "El directorio de estado no pertenece al usuario actual."
+chmod 700 "$STATE_DIR"
+
+LOCK_FILE="$STATE_DIR/lock"
+PID_FILE="$STATE_DIR/recording.pid"
+AUDIO_FILE="$STATE_DIR/recording.wav"
+WINDOW_FILE="$STATE_DIR/target.window"
+umask 077
+exec 9>"$LOCK_FILE"
+if [[ "$MODE" == "--cancel" ]]; then
+    flock -w 3 9 || fail "Hay otra operación en curso; no se pudo cancelar."
+elif ! flock -n 9; then
+    notify "Voice to Terminal" "Hay otra operación en curso."
+    exit 1
+fi
+
+resolved_arecord="$(readlink -f "$ARECORD")"
+is_recorder_running() {
+    local pid="$1"
+    local process_exe
+    [[ "$pid" =~ ^[0-9]+$ && -e "/proc/$pid/exe" ]] || return 1
+    process_exe="$(readlink -f "/proc/$pid/exe" 2>/dev/null)" || return 1
+    [[ "$process_exe" == "$resolved_arecord" ]]
+}
+
+run_xdotool() {
+    LD_LIBRARY_PATH="$LOCAL_LIB${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" \
+        "$XDO" "$@"
+}
+
+if [[ "$MODE" == "--cancel" ]]; then
+    if [[ -e "$PID_FILE" ]]; then
+        recorder_pid="$(<"$PID_FILE")"
+        if is_recorder_running "$recorder_pid"; then
+            kill -INT "$recorder_pid" || fail "No se pudo cancelar arecord."
+            stopped=0
+            for _ in {1..60}; do
+                if ! kill -0 "$recorder_pid" 2>/dev/null; then
+                    stopped=1
+                    break
+                fi
+                sleep 0.1
+            done
+            [[ "$stopped" == 1 ]] || fail "arecord no se detuvo al cancelar."
+        fi
+    fi
+    rm -f -- "$PID_FILE" "$AUDIO_FILE" "$WINDOW_FILE"
+    exit 0
+fi
+
+if [[ "$MODE" == "--start" && -e "$PID_FILE" ]]; then
+    fail "Ya existe una grabación; detenla o cancélala antes de iniciar otra."
+fi
+if [[ "$MODE" == "--stop" && ! -e "$PID_FILE" ]]; then
+    fail "No hay una grabación activa."
+fi
+
+if [[ -e "$PID_FILE" ]]; then
+    recorder_pid="$(<"$PID_FILE")"
+    if ! is_recorder_running "$recorder_pid"; then
+        rm -f -- "$PID_FILE" "$AUDIO_FILE"
+        fail "La grabación anterior ya no está activa; se limpió su estado."
+    fi
+
+    if ! kill -INT "$recorder_pid"; then
+        fail "No se pudo detener arecord; la grabación se conserva para reintentar."
+    fi
+    stopped=0
+    for _ in {1..60}; do
+        if ! kill -0 "$recorder_pid" 2>/dev/null; then
+            stopped=1
+            break
+        fi
+        sleep 0.1
+    done
+    [[ "$stopped" == 1 ]] || fail "arecord no se detuvo; la grabación se conserva para reintentar."
+
+    rm -f -- "$PID_FILE"
+    trap 'rm -f -- "$AUDIO_FILE" "$PID_FILE" "$WINDOW_FILE"' EXIT
+    notify "Voice to Terminal" "Transcribiendo localmente…"
+
+    if ! python3 - "$AUDIO_FILE" >/dev/null 2>&1 <<'PY'
+import sys
+import wave
+
+try:
+    with wave.open(sys.argv[1], "rb") as audio:
+        valid = (
+            audio.getnchannels() == 1
+            and audio.getsampwidth() == 2
+            and audio.getframerate() == 16000
+            and audio.getnframes() >= audio.getframerate()
+        )
+except (OSError, EOFError, wave.Error):
+    valid = False
+sys.exit(0 if valid else 1)
+PY
+    then
+        fail "El audio está vacío, es demasiado corto o no tiene un formato válido."
+    fi
+
+    if ! raw_text="$("$WHISPER_BIN" --model "$MODEL" --file "$AUDIO_FILE" --language es --no-timestamps --no-prints --no-gpu --threads 4 2>/dev/null)"; then
+        fail "Falló la transcripción local."
+    fi
+    text="$(printf '%s' "$raw_text" | python3 -c 'import sys; print(" ".join(sys.stdin.read().split()), end="")')"
+    [[ -n "$text" ]] || fail "No se reconoció voz en la grabación."
+
+    [[ -r "$WINDOW_FILE" ]] || fail "No se encontró la ventana enfocada al iniciar el dictado."
+    target_window="$(<"$WINDOW_FILE")"
+    [[ "$target_window" =~ ^[0-9]+$ ]] || fail "El identificador de la ventana destino no es válido."
+    if ! run_xdotool windowactivate --sync "$target_window"; then
+        fail "No se pudo volver a la ventana enfocada al iniciar el dictado."
+    fi
+    if ! active_window="$(run_xdotool getactivewindow)" || [[ "$active_window" != "$target_window" ]]; then
+        fail "La ventana destino no recuperó el foco; no se escribió la transcripción."
+    fi
+    if ! run_xdotool type --clearmodifiers --delay 1 -- "$text"; then
+        fail "La transcripción está lista, pero no se pudo escribir en la ventana enfocada."
+    fi
+    notify "Voice to Terminal" "Texto escrito en la ventana enfocada."
+else
+    rm -f -- "$AUDIO_FILE" "$WINDOW_FILE"
+    if ! target_window="$(run_xdotool getactivewindow)"; then
+        fail "No se pudo identificar la ventana enfocada para el dictado."
+    fi
+    [[ "$target_window" =~ ^[0-9]+$ ]] || fail "No se pudo identificar la ventana enfocada para el dictado."
+    printf '%s\n' "$target_window" >"$WINDOW_FILE"
+    nohup "$ARECORD" --quiet -f S16_LE -r 16000 -c 1 -t wav "$AUDIO_FILE" \
+        >/dev/null 2>&1 </dev/null 9>&- &
+    recorder_pid=$!
+    printf '%s\n' "$recorder_pid" >"$PID_FILE"
+    sleep 0.2
+    if ! is_recorder_running "$recorder_pid"; then
+        rm -f -- "$PID_FILE" "$AUDIO_FILE" "$WINDOW_FILE"
+        fail "No se pudo iniciar la grabación. Verifica el micrófono predeterminado."
+    fi
+    notify "Voice to Terminal" "Grabando. Pulsa el icono otra vez para transcribir."
+fi

@@ -1,0 +1,7 @@
+{
+  "uuid": "voice-to-terminal@migue.local",
+  "name": "Voice to Terminal",
+  "description": "Dictado local en la terminal enfocada.",
+  "shell-version": ["46"],
+  "version": 1
+}

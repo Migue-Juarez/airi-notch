@@ -1,0 +1,11 @@
+/models/
+/packages/
+/toolchain/
+/whisper.cpp/
+/build/
+/dist/
+/__pycache__/
+*.py[cod]
+*.shell-extension.zip
+*.wav
+.DS_Store
