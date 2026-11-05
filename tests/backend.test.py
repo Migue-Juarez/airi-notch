@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+import shutil
 import subprocess
 import tempfile
 import unittest
@@ -69,6 +70,7 @@ int main(int argc, char **argv) {
         (app / "models" / "ggml-base.bin").touch()
         self.script(app / "whisper.cpp/build/bin/whisper-cli",
                     "printf 'dictado local de prueba\\n'\n")
+        shutil.copy2(APP / "audio_meter.py", app / "audio_meter.py")
         self.script(app / "toolchain/usr/bin/xdotool", """
 case "$1" in
     getactivewindow)
@@ -107,6 +109,7 @@ esac
         start = self.run_backend("--start")
         self.assertEqual((start.returncode, start.stdout, start.stderr), (0, "", ""))
         self.assertTrue((self.state / "target.window").is_file())
+        self.assertTrue((self.state / "recording.level").is_file())
         self.env["TEST_WINDOW"] = "9999"
         stop = self.run_backend("--stop")
         self.assertEqual((stop.returncode, stop.stdout, stop.stderr), (0, "", ""))
@@ -117,6 +120,7 @@ esac
         self.assertEqual(self.active_window.read_text().strip(), "4242")
         self.assertFalse((self.state / "recording.pid").exists())
         self.assertFalse((self.state / "recording.wav").exists())
+        self.assertFalse((self.state / "recording.level").exists())
         self.assertFalse((self.state / "target.window").exists())
 
     def test_explicit_commands_do_not_toggle_wrong_state(self):
@@ -140,6 +144,13 @@ esac
         self.assertFalse(self.typed.exists())
         self.assertFalse((self.state / "recording.pid").exists())
         self.assertFalse((self.state / "recording.wav").exists())
+
+    def test_return_text_only_when_requested(self):
+        self.assertEqual(self.run_backend("--start").returncode, 0)
+        self.env["VOICE_TO_TERMINAL_RETURN_TEXT"] = "1"
+        stop = self.run_backend("--stop")
+        self.assertEqual(stop.returncode, 0)
+        self.assertEqual(stop.stdout.strip(), "dictado local de prueba")
 
     @unittest.skipUnless(os.environ.get("VOICE_TO_TERMINAL_GUI_TEST") == "1",
                          "Requires a local X11 desktop and the installed Whisper model")

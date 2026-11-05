@@ -9,6 +9,7 @@ NOTIFY="$(command -v notify-send || true)"
 XDO="$APP_HOME/toolchain/usr/bin/xdotool"
 MULTIARCH="$(cc -print-multiarch 2>/dev/null || true)"
 LOCAL_LIB="$APP_HOME/toolchain/usr/lib/$MULTIARCH"
+AUDIO_METER="$APP_HOME/audio_meter.py"
 
 notify() {
     [[ -z "${VOICE_TO_TERMINAL_QUIET:-}" ]] || return 0
@@ -57,6 +58,8 @@ LOCK_FILE="$STATE_DIR/lock"
 PID_FILE="$STATE_DIR/recording.pid"
 AUDIO_FILE="$STATE_DIR/recording.wav"
 WINDOW_FILE="$STATE_DIR/target.window"
+LEVEL_FILE="$STATE_DIR/recording.level"
+METER_PID_FILE="$STATE_DIR/meter.pid"
 umask 077
 exec 9>"$LOCK_FILE"
 if [[ "$MODE" == "--cancel" ]]; then
@@ -73,6 +76,48 @@ is_recorder_running() {
     [[ "$pid" =~ ^[0-9]+$ && -e "/proc/$pid/exe" ]] || return 1
     process_exe="$(readlink -f "/proc/$pid/exe" 2>/dev/null)" || return 1
     [[ "$process_exe" == "$resolved_arecord" ]]
+}
+
+is_meter_running() {
+    local pid="$1"
+    local state command_line
+    [[ "$pid" =~ ^[0-9]+$ && -r "/proc/$pid/status" && -r "/proc/$pid/cmdline" ]] || return 1
+    state="$(awk '$1 == "State:" { print $2 }' "/proc/$pid/status")" || return 1
+    [[ "$state" != "Z" ]] || return 1
+    command_line="$(tr '\0' ' ' <"/proc/$pid/cmdline")" || return 1
+    [[ "$command_line" == *"$AUDIO_METER"* && "$command_line" == *"$AUDIO_FILE"* ]]
+}
+
+wait_for_meter() {
+    [[ -r "$METER_PID_FILE" ]] || return 0
+    local meter_pid
+    meter_pid="$(<"$METER_PID_FILE")"
+    [[ "$meter_pid" =~ ^[0-9]+$ ]] || fail "El PID del medidor de audio no es válido."
+    for _ in {1..20}; do
+        if ! is_meter_running "$meter_pid"; then
+            rm -f -- "$METER_PID_FILE"
+            return 0
+        fi
+        sleep 0.05
+    done
+    fail "El medidor de audio no se detuvo."
+}
+
+start_meter() {
+    nohup python3 "$AUDIO_METER" "$AUDIO_FILE" "$LEVEL_FILE" "$recorder_pid" "$resolved_arecord" \
+        >/dev/null 2>&1 </dev/null 9>&- &
+    meter_pid=$!
+    printf '%s\n' "$meter_pid" >"$METER_PID_FILE"
+    for _ in {1..20}; do
+        if ! is_meter_running "$meter_pid"; then
+            return 1
+        fi
+        if [[ -r "$LEVEL_FILE" ]]; then
+            return 0
+        fi
+        sleep 0.05
+    done
+    return 1
 }
 
 run_xdotool() {
@@ -96,10 +141,12 @@ if [[ "$MODE" == "--cancel" ]]; then
             [[ "$stopped" == 1 ]] || fail "arecord no se detuvo al cancelar."
         fi
     fi
-    rm -f -- "$PID_FILE" "$AUDIO_FILE" "$WINDOW_FILE"
+    wait_for_meter
+    rm -f -- "$PID_FILE" "$AUDIO_FILE" "$WINDOW_FILE" "$LEVEL_FILE" "$LEVEL_FILE".*.tmp "$METER_PID_FILE"
     exit 0
 fi
 
+[[ -r "$AUDIO_METER" ]] || fail "No se encontró el medidor de audio. Ejecuta install.sh."
 if [[ "$MODE" == "--start" && -e "$PID_FILE" ]]; then
     fail "Ya existe una grabación; detenla o cancélala antes de iniciar otra."
 fi
@@ -128,7 +175,8 @@ if [[ -e "$PID_FILE" ]]; then
     [[ "$stopped" == 1 ]] || fail "arecord no se detuvo; la grabación se conserva para reintentar."
 
     rm -f -- "$PID_FILE"
-    trap 'rm -f -- "$AUDIO_FILE" "$PID_FILE" "$WINDOW_FILE"' EXIT
+    wait_for_meter
+    trap 'rm -f -- "$AUDIO_FILE" "$PID_FILE" "$WINDOW_FILE" "$LEVEL_FILE" "$LEVEL_FILE".*.tmp "$METER_PID_FILE"' EXIT
     notify "Voice to Terminal" "Transcribiendo localmente…"
 
     if ! python3 - "$AUDIO_FILE" >/dev/null 2>&1 <<'PY'
@@ -170,8 +218,13 @@ PY
         fail "La transcripción está lista, pero no se pudo escribir en la ventana enfocada."
     fi
     notify "Voice to Terminal" "Texto escrito en la ventana enfocada."
+    if [[ "${VOICE_TO_TERMINAL_RETURN_TEXT:-}" == "1" ]]; then
+        printf '%s\n' "$text"
+    fi
 else
+    wait_for_meter
     rm -f -- "$AUDIO_FILE" "$WINDOW_FILE"
+    rm -f -- "$LEVEL_FILE" "$LEVEL_FILE".*.tmp
     if ! target_window="$(run_xdotool getactivewindow)"; then
         fail "No se pudo identificar la ventana enfocada para el dictado."
     fi
@@ -185,6 +238,23 @@ else
     if ! is_recorder_running "$recorder_pid"; then
         rm -f -- "$PID_FILE" "$AUDIO_FILE" "$WINDOW_FILE"
         fail "No se pudo iniciar la grabación. Verifica el micrófono predeterminado."
+    fi
+    if ! start_meter; then
+        if is_recorder_running "$recorder_pid"; then
+            kill -INT "$recorder_pid" || fail "No se pudo detener arecord tras fallar el medidor."
+        fi
+        stopped=0
+        for _ in {1..60}; do
+            if ! is_recorder_running "$recorder_pid"; then
+                stopped=1
+                break
+            fi
+            sleep 0.1
+        done
+        [[ "$stopped" == 1 ]] || fail "arecord no se detuvo tras fallar el medidor."
+        wait_for_meter
+        rm -f -- "$PID_FILE" "$AUDIO_FILE" "$WINDOW_FILE" "$LEVEL_FILE" "$LEVEL_FILE".*.tmp "$METER_PID_FILE"
+        fail "No se pudo iniciar el medidor de audio."
     fi
     notify "Voice to Terminal" "Grabando. Pulsa el icono otra vez para transcribir."
 fi

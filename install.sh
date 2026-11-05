@@ -31,6 +31,7 @@ die() {
 [[ "${XDG_SESSION_TYPE:-}" == x11 ]] || die "La inserción automática solo está configurada para X11."
 [[ "$(uname -m)" == x86_64 ]] || die "La extracción local de dependencias está preparada para x86_64."
 [[ -f "$PROJECT_ENTRYPOINT" ]] || die "No se encontró el comando del proyecto: $PROJECT_ENTRYPOINT."
+[[ -f "$PROJECT_ROOT/audio_meter.py" ]] || die "No se encontró el medidor de audio del proyecto."
 
 for command_name in apt-get dpkg-deb git curl sha1sum cc make arecord notify-send python3 gnome-extensions install gsettings; do
     command -v "$command_name" >/dev/null 2>&1 || die "Falta la herramienta requerida: $command_name."
@@ -109,10 +110,13 @@ printf '%s\n' "Compilando whisper.cpp para esta máquina..."
 if [[ "$PROJECT_ENTRYPOINT" != "$ENTRYPOINT" ]]; then
     install -m 755 "$PROJECT_ENTRYPOINT" "$ENTRYPOINT"
 fi
+if [[ "$PROJECT_ROOT/audio_meter.py" != "$APP_HOME/audio_meter.py" ]]; then
+    install -m 755 "$PROJECT_ROOT/audio_meter.py" "$APP_HOME/audio_meter.py"
+fi
 chmod 755 "$ENTRYPOINT"
 ln -sfn "$ENTRYPOINT" "$LINK"
 
-[[ -f "$EXTENSION_SOURCE/metadata.json" && -f "$EXTENSION_SOURCE/extension.js" && -f "$EXTENSION_SOURCE/robot-face.svg" ]] ||
+[[ -f "$EXTENSION_SOURCE/metadata.json" && -f "$EXTENSION_SOURCE/extension.js" && -f "$EXTENSION_SOURCE/robot-face.svg" && -f "$EXTENSION_SOURCE/microphone.svg" ]] ||
     die "No están los archivos de la extensión GNOME."
 if [[ -e "$EXTENSION_DIR" ]]; then
     [[ -f "$EXTENSION_DIR/metadata.json" ]] || die "La ruta de la extensión ya existe y no se sobrescribió."
@@ -121,9 +125,10 @@ if [[ -e "$EXTENSION_DIR" ]]; then
 fi
 mkdir -p "$EXTENSION_DIR"
 gnome-extensions pack --force --extra-source="$EXTENSION_SOURCE/robot-face.svg" \
+    --extra-source="$EXTENSION_SOURCE/microphone.svg" \
     --out-dir "$APP_HOME" "$EXTENSION_SOURCE"
 install -m 644 "$EXTENSION_SOURCE/metadata.json" "$EXTENSION_SOURCE/extension.js" \
-    "$EXTENSION_SOURCE/robot-face.svg" "$EXTENSION_DIR/"
+    "$EXTENSION_SOURCE/robot-face.svg" "$EXTENSION_SOURCE/microphone.svg" "$EXTENSION_DIR/"
 
 enabled="$(gsettings get org.gnome.shell enabled-extensions)"
 enabled_with_extension="$(python3 - "$enabled" "$EXTENSION_UUID" <<'PY'
