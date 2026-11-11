@@ -1,6 +1,7 @@
 import Clutter from 'gi://Clutter';
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
+import Pango from 'gi://Pango';
 import St from 'gi://St';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
@@ -22,20 +23,65 @@ const ACTIONS = {
     complete: 'Iniciar dictado',
 };
 
+const ROBOT_ASSETS = {
+    idle: 'robot-idle.png',
+    idleOpen: 'robot-idle-open.png',
+    listening: 'robot-listening.png',
+    processing: 'robot-processing.png',
+    success: 'robot-success.png',
+    attention: 'robot-idle-open.png',
+};
+const ROBOT_POSE_ASSETS = {
+    front: 'robot-frente-vacio.png',
+    threeQuarter: 'robot-34-vacio.png',
+};
+const ROBOT_MOOD_BY_PHASE = {
+    idle: 'idle',
+    starting: 'processing',
+    recording: 'listening',
+    stopping: 'processing',
+    complete: 'success',
+};
+const ROBOT_HOP_DIRECTION_BY_PHASE = {
+    starting: 1,
+    stopping: -1,
+    complete: 1,
+};
+const ROBOT_HOP_DIRECTION_BY_COPILOT_STATUS = {
+    working: -1,
+    attention: 1,
+    ready: 1,
+    error: -1,
+};
 const PANEL_BUTTON_STYLE = 'background-color: transparent; border: 0; padding: 0; border-radius: 999px; transition-duration: 150ms;';
 const PANEL_BUTTON_HOVER_STYLE = 'background-color: rgba(255,255,255,0.12); border: 0; padding: 0; border-radius: 999px; transition-duration: 150ms;';
-const FLOATING_BUTTON_SIZE = 42;
-const FLOATING_BUTTON_STYLES = {
-    idle: 'background-color: rgba(21,17,44,0.92); border: 1px solid rgba(149,80,255,0.72); border-radius: 14px; padding: 5px;',
-    idleHover: 'background-color: rgba(48,34,80,0.98); border: 1px solid rgba(177,127,255,0.95); border-radius: 14px; padding: 5px;',
-    active: 'background-color: rgba(34,26,57,0.96); border: 1px solid rgba(149,80,255,0.85); border-radius: 14px; padding: 5px;',
-    recording: 'background-color: rgba(64,27,48,0.96); border: 1px solid rgba(255,93,119,0.95); border-radius: 14px; padding: 5px;',
-    recordingHover: 'background-color: rgba(92,34,58,0.98); border: 1px solid rgba(255,132,151,1); border-radius: 14px; padding: 5px;',
-    complete: 'background-color: rgba(24,54,49,0.96); border: 1px solid rgba(67,233,135,0.95); border-radius: 14px; padding: 5px;',
-    completeHover: 'background-color: rgba(31,77,57,0.98); border: 1px solid rgba(105,255,164,1); border-radius: 14px; padding: 5px;',
+const FLOATING_BUTTON_SIZE = 112;
+const FLOATING_CARD_OVERLAP_PX = 36;
+const FLOATING_POSE_CROSSFADE_MS = 180;
+const FLOATING_BLINK_INTERVAL_MS = 4500;
+const FLOATING_BLINK_DURATION_MS = 130;
+const FLOATING_SACCADE_INTERVAL_MS = 1100;
+const FLOATING_SACCADE_DURATION_MS = 90;
+const COPILOT_SHIMMER_STEP_MS = 240;
+const COPILOT_CARD_RESIZE_DURATION_MS = 380;
+const COPILOT_SHIMMER_COLORS = ['#334155', '#64748b', '#cbd5e1', '#64748b'];
+const COPILOT_NOTIFICATION_DURATION_MS = 5000;
+const COPILOT_NOTIFICATION_MAX_AGE_SECONDS = 120;
+const COPILOT_NOTIFICATION_COLORS = {
+    working: '#0f766e',
+    attention: '#0f766e',
+    error: '#b91c1c',
+    ready: '#059669',
 };
-const OVERLAY_STYLE = 'spacing: 16px; padding: 14px 16px; min-width: 320px; background-color: rgba(21,17,44,0.97); border: 1px solid rgba(149,80,255,0.8); border-radius: 4px 18px 18px 18px;';
-const RECORDING_OVERLAY_STYLE = 'spacing: 16px; padding: 14px 16px; min-width: 320px; background-color: rgba(21,17,44,0.97); border: 1px solid rgba(255,93,119,0.9); border-radius: 4px 18px 18px 18px;';
+const COPILOT_STATUS_LABELS = {
+    working: 'Copilot trabajando',
+};
+const FLOATING_BUTTON_STYLE = 'background-color: transparent; border: 0; outline: none; border-radius: 0; padding: 0; box-shadow: none;';
+const FLOATING_EYE_STYLE = 'background-color: #34d399; border: 1px solid rgba(167,243,208,0.72); border-radius: 2px; box-shadow: 0 0 4px rgba(209,250,229,0.9), 0 0 12px rgba(16,185,129,0.95), inset 0 0 2px rgba(236,253,245,0.85);';
+const IDLE_OVERLAY_STYLE = 'spacing: 16px; padding: 16px 20px; min-width: 0px; background-color: rgba(249,250,251,0.98); border: 1px solid rgba(203,213,225,0.94); border-radius: 24px; box-shadow: 0 10px 32px rgba(15,23,42,0.22);';
+const OVERLAY_STYLE = 'spacing: 16px; padding: 16px 20px; min-width: 400px; background-color: rgba(249,250,251,0.98); border: 1px solid rgba(203,213,225,0.94); border-radius: 24px; box-shadow: 0 10px 32px rgba(15,23,42,0.22);';
+const RECORDING_OVERLAY_STYLE = 'spacing: 16px; padding: 16px 20px; min-width: 400px; background-color: rgba(240,253,247,0.99); border: 1px solid rgba(16,185,129,0.72); border-radius: 24px; box-shadow: 0 10px 32px rgba(15,23,42,0.2);';
+const NOTIFICATION_OVERLAY_STYLE = 'spacing: 16px; padding: 16px 20px; min-width: 400px; background-color: rgba(249,250,251,0.99); border: 1px solid rgba(16,185,129,0.76); border-radius: 24px; box-shadow: 0 10px 32px rgba(15,23,42,0.22);';
 
 export default class VoiceToTerminalExtension extends Extension {
     enable() {
@@ -49,8 +95,22 @@ export default class VoiceToTerminalExtension extends Extension {
         this._floatingClickResetTimer = 0;
         this._overlayHovered = false;
         this._overlayHideTimer = 0;
-        this._floatingPulseTimer = 0;
-        this._floatingPulseDim = false;
+        this._floatingBlinkTimer = 0;
+        this._floatingBlinkRestoreTimer = 0;
+        this._floatingSaccadeTimer = 0;
+        this._floatingSaccadeRestoreTimer = 0;
+        this._floatingEyesSquinting = false;
+        this._copilotShimmerTimer = 0;
+        this._copilotShimmerIndex = 0;
+        this._robotHopSequence = 0;
+        this._floatingSaccadeDirection = 1;
+        this._robotMood = null;
+        this._floatingPose = null;
+        this._copilotNotificationTimer = 0;
+        this._copilotDismissTimer = 0;
+        this._copilotNotification = null;
+        this._copilotStatusBySession = new Map();
+        this._copilotNotificationErrorNotified = false;
         this._meterTimer = 0;
         this._resultDismissTimer = 0;
         this._resultText = '';
@@ -61,9 +121,31 @@ export default class VoiceToTerminalExtension extends Extension {
         this._meterPath = runtimeDir
             ? GLib.build_filenamev([runtimeDir, 'voice-to-terminal', 'recording.level'])
             : GLib.build_filenamev([GLib.get_home_dir(), '.cache', 'voice-to-terminal', 'runtime', 'recording.level']);
-        this._robotIconPath = GLib.build_filenamev([
-            GLib.get_user_data_dir(), 'gnome-shell', 'extensions', this.uuid, 'robot-face.svg',
-        ]);
+        this._copilotNotificationDirectory = runtimeDir
+            ? GLib.build_filenamev([runtimeDir, 'voice-to-terminal', 'copilot-notifications'])
+            : null;
+        this._robotMoodPaths = {};
+        this._robotMoodIcons = {};
+        for (const [mood, filename] of Object.entries(ROBOT_ASSETS)) {
+            const path = GLib.build_filenamev([
+                GLib.get_user_data_dir(), 'gnome-shell', 'extensions', this.uuid, filename,
+            ]);
+            this._robotMoodPaths[mood] = path;
+            this._robotMoodIcons[mood] = new Gio.FileIcon({
+                file: Gio.File.new_for_path(path),
+            });
+        }
+        this._robotPosePaths = {};
+        this._robotPoseIcons = {};
+        for (const [pose, filename] of Object.entries(ROBOT_POSE_ASSETS)) {
+            const path = GLib.build_filenamev([
+                GLib.get_user_data_dir(), 'gnome-shell', 'extensions', this.uuid, filename,
+            ]);
+            this._robotPosePaths[pose] = path;
+            this._robotPoseIcons[pose] = new Gio.FileIcon({
+                file: Gio.File.new_for_path(path),
+            });
+        }
         this._microphoneIconPath = GLib.build_filenamev([
             GLib.get_user_data_dir(), 'gnome-shell', 'extensions', this.uuid, 'microphone.svg',
         ]);
@@ -84,11 +166,11 @@ export default class VoiceToTerminalExtension extends Extension {
         });
         this._lastWindow = global.display.focus_window;
 
-        this._indicator = new PanelMenu.Button(0.0, 'Voice to Terminal', true);
+        this._indicator = new PanelMenu.Button(0.0, 'Airi', true);
         this._indicator.can_focus = false;
         this._indicator.reactive = false;
         this._indicatorIcon = new St.Icon({
-            gicon: new Gio.FileIcon({ file: Gio.File.new_for_path(this._robotIconPath) }),
+            gicon: this._robotMoodIcons.idle,
             style_class: 'system-status-icon',
         });
         this._recordButton = new St.Button({
@@ -121,28 +203,30 @@ export default class VoiceToTerminalExtension extends Extension {
         Main.panel.addToStatusArea(this.uuid, this._indicator, 0, 'right');
         if (this._floatingRobotVisible) {
             this._createFloatingRobot();
-            this._startFloatingPulse();
         }
         this._layoutChangedId = Main.layoutManager.connect('monitors-changed', () => {
             this._positionFloatingRobot();
             if (this._overlay)
                 this._positionOverlay();
         });
+        this._startCopilotNotificationWatcher();
         this._runBackend(['--cancel'], (success, error) => {
             this._phase = 'idle';
             this._updateOverlay();
             if (!success)
-                Main.notifyError('Voice to Terminal', `No se pudo limpiar la grabación anterior. ${error}`);
+                Main.notifyError('Airi', `No se pudo limpiar la grabación anterior. ${error}`);
         });
     }
 
     disable() {
         this._disposed = true;
         this._lifecycle++;
+        this._stopCopilotShimmer();
         if (this._phase === 'starting' || this._phase === 'recording')
             this._runBackend(['--cancel'], () => {});
 
         this._cancelOverlayHide();
+        this._stopCopilotNotificationWatcher();
         if (this._focusId) {
             global.display.disconnect(this._focusId);
             this._focusId = 0;
@@ -165,10 +249,48 @@ export default class VoiceToTerminalExtension extends Extension {
         if (this._floatingButton)
             return;
 
-        this._floatingRobotIcon = new St.Icon({
-            gicon: new Gio.FileIcon({ file: Gio.File.new_for_path(this._robotIconPath) }),
-            icon_size: 30,
+        this._floatingRobotCanvas = new St.Widget({
+            width: FLOATING_BUTTON_SIZE,
+            height: FLOATING_BUTTON_SIZE,
+            layout_manager: new Clutter.FixedLayout(),
         });
+        this._floatingRobotIcons = {
+            front: new St.Icon({
+                gicon: this._robotPoseIcons.front,
+                icon_size: FLOATING_BUTTON_SIZE,
+                width: FLOATING_BUTTON_SIZE,
+                height: FLOATING_BUTTON_SIZE,
+                opacity: 255,
+                style: 'icon-shadow: 0 4px 12px rgba(15,23,42,0.4);',
+            }),
+            threeQuarter: new St.Icon({
+                gicon: this._robotPoseIcons.threeQuarter,
+                icon_size: FLOATING_BUTTON_SIZE,
+                width: FLOATING_BUTTON_SIZE,
+                height: FLOATING_BUTTON_SIZE,
+                opacity: 0,
+                style: 'icon-shadow: 0 4px 12px rgba(15,23,42,0.4);',
+            }),
+        };
+        this._floatingRobotIcon = this._floatingRobotIcons.front;
+        this._floatingRobotCanvas.add_child(this._floatingRobotIcons.front);
+        this._floatingRobotCanvas.add_child(this._floatingRobotIcons.threeQuarter);
+        this._floatingEyes = [
+            new St.Widget({
+                width: 16,
+                height: 12,
+                reactive: false,
+                style: FLOATING_EYE_STYLE,
+            }),
+            new St.Widget({
+                width: 16,
+                height: 12,
+                reactive: false,
+                style: FLOATING_EYE_STYLE,
+            }),
+        ];
+        for (const eye of this._floatingEyes)
+            this._floatingRobotCanvas.add_child(eye);
         this._floatingButton = new St.Button({
             can_focus: true,
             reactive: true,
@@ -176,9 +298,10 @@ export default class VoiceToTerminalExtension extends Extension {
             width: FLOATING_BUTTON_SIZE,
             height: FLOATING_BUTTON_SIZE,
             accessible_name: 'Abrir controles de dictado',
-            style: FLOATING_BUTTON_STYLES.idle,
+            style: FLOATING_BUTTON_STYLE,
         });
-        this._floatingButton.set_child(this._floatingRobotIcon);
+        this._floatingButton.set_child(this._floatingRobotCanvas);
+        this._setFloatingPose('front', false);
         this._floatingButton.connect('enter-event', () => {
             this._floatingHovered = true;
             this._cancelOverlayHide();
@@ -254,12 +377,18 @@ export default class VoiceToTerminalExtension extends Extension {
     }
 
     _destroyFloatingRobot() {
-        this._stopFloatingPulse();
+        this._stopFloatingBlink();
+        this._stopFloatingSaccades();
         if (this._floatingButton) {
             Main.layoutManager.removeChrome(this._floatingButton);
             this._floatingButton.destroy();
             this._floatingButton = null;
+            this._floatingRobotCanvas = null;
             this._floatingRobotIcon = null;
+            this._floatingRobotIcons = null;
+            this._floatingEyes = null;
+            this._floatingEyeLayout = null;
+            this._floatingPose = null;
         }
         this._floatingHovered = false;
         this._floatingDrag = null;
@@ -312,8 +441,8 @@ export default class VoiceToTerminalExtension extends Extension {
                 visible: position.visible !== false,
             };
         } catch (error) {
-            logError(error, 'Voice to Terminal: no se pudo cargar la posición del robot');
-            Main.notifyError('Voice to Terminal', 'No se pudo cargar la posición del robot; se usará la ubicación predeterminada.');
+            logError(error, 'Airi: no se pudo cargar la posición del robot');
+            Main.notifyError('Airi', 'No se pudo cargar la posición del robot; se usará la ubicación predeterminada.');
             return null;
         }
     }
@@ -354,8 +483,8 @@ export default class VoiceToTerminalExtension extends Extension {
             if (!success)
                 throw new Error('No se pudo guardar la posición del robot.');
         } catch (error) {
-            logError(error, 'Voice to Terminal: no se pudo guardar la posición del robot');
-            Main.notifyError('Voice to Terminal', 'No se pudo guardar la posición del robot.');
+            logError(error, 'Airi: no se pudo guardar la posición del robot');
+            Main.notifyError('Airi', 'No se pudo guardar la posición del robot.');
         }
     }
 
@@ -376,7 +505,6 @@ export default class VoiceToTerminalExtension extends Extension {
             this._floatingRobotVisible = showRobot;
             if (showRobot) {
                 this._createFloatingRobot();
-                this._startFloatingPulse();
             } else {
                 if (this._overlay && this._overlayAnchor === this._floatingButton) {
                     this._overlayAnchor = this._recordButton;
@@ -390,56 +518,335 @@ export default class VoiceToTerminalExtension extends Extension {
             this._updateOverlay();
         } catch (error) {
             this._floatingRobotVisible = !showRobot;
-            logError(error, 'Voice to Terminal: no se pudo cambiar la visibilidad del robot');
-            Main.notifyError('Voice to Terminal', `No se pudo cambiar la visibilidad del robot. ${error.message}`);
+            logError(error, 'Airi: no se pudo cambiar la visibilidad del robot');
+            Main.notifyError('Airi', `No se pudo cambiar la visibilidad del robot. ${error.message}`);
         }
     }
 
-    _startFloatingPulse() {
-        this._stopFloatingPulse();
-        this._floatingPulseTimer = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 900, () => {
-            if (this._disposed || !this._floatingRobotIcon) {
-                this._floatingPulseTimer = 0;
-                return GLib.SOURCE_REMOVE;
-            }
+    _ensureFloatingBlink() {
+        if (this._disposed || this._robotMood !== 'idle' || this._phase !== 'idle'
+            || !this._floatingEyes?.length || this._floatingBlinkTimer
+            || this._floatingBlinkRestoreTimer)
+            return;
 
-            const shouldPulse = this._phase === 'idle' || this._phase === 'complete';
-            this._floatingRobotIcon.opacity = shouldPulse && this._floatingPulseDim ? 224 : 255;
-            this._floatingPulseDim = shouldPulse && !this._floatingPulseDim;
-            return GLib.SOURCE_CONTINUE;
+        this._floatingBlinkTimer = GLib.timeout_add(
+            GLib.PRIORITY_DEFAULT,
+            FLOATING_BLINK_INTERVAL_MS,
+            () => {
+                this._floatingBlinkTimer = 0;
+                if (this._disposed || this._robotMood !== 'idle'
+                    || this._phase !== 'idle' || !this._floatingEyes?.length)
+                    return GLib.SOURCE_REMOVE;
+
+                for (const eye of this._floatingEyes) {
+                    eye.ease({
+                        scale_y: 0.12,
+                        duration: 55,
+                        mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+                    });
+                }
+                this._floatingBlinkRestoreTimer = GLib.timeout_add(
+                    GLib.PRIORITY_DEFAULT,
+                    FLOATING_BLINK_DURATION_MS,
+                    () => {
+                        this._floatingBlinkRestoreTimer = 0;
+                        if (this._disposed || this._robotMood !== 'idle'
+                            || this._phase !== 'idle' || !this._floatingEyes?.length)
+                            return GLib.SOURCE_REMOVE;
+
+                        for (const eye of this._floatingEyes) {
+                            eye.ease({
+                                scale_y: 1,
+                                duration: 75,
+                                mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+                            });
+                        }
+                        this._ensureFloatingBlink();
+                        return GLib.SOURCE_REMOVE;
+                    },
+                );
+                return GLib.SOURCE_REMOVE;
+            },
+        );
+    }
+
+    _stopFloatingBlink() {
+        if (this._floatingBlinkTimer) {
+            GLib.source_remove(this._floatingBlinkTimer);
+            this._floatingBlinkTimer = 0;
+        }
+        if (this._floatingBlinkRestoreTimer) {
+            GLib.source_remove(this._floatingBlinkRestoreTimer);
+            this._floatingBlinkRestoreTimer = 0;
+        }
+        for (const eye of this._floatingEyes ?? [])
+            eye.scale_y = 1;
+    }
+
+    _positionFloatingEyes(offset = 0, animate = false) {
+        if (!this._floatingEyes || !this._floatingEyeLayout)
+            return;
+
+        this._floatingEyes.forEach((eye, index) => {
+            const layout = this._floatingEyeLayout[index];
+            const target = {
+                x: layout.x + offset,
+                y: layout.y,
+                width: layout.width,
+                height: layout.height,
+                scale_x: layout.scaleX ?? 1,
+                rotation_angle_z: layout.rotation ?? 0,
+            };
+            eye.remove_all_transitions();
+            if (animate) {
+                eye.ease({
+                    ...target,
+                    duration: FLOATING_POSE_CROSSFADE_MS,
+                    mode: Clutter.AnimationMode.EASE_IN_OUT_QUAD,
+                });
+            } else {
+                eye.set_position(target.x, target.y);
+                eye.width = target.width;
+                eye.height = target.height;
+                eye.scale_x = target.scale_x;
+                eye.rotation_angle_z = target.rotation_angle_z;
+            }
         });
     }
 
-    _stopFloatingPulse() {
-        if (this._floatingPulseTimer) {
-            GLib.source_remove(this._floatingPulseTimer);
-            this._floatingPulseTimer = 0;
+    _setFloatingEyeOffset(offset) {
+        if (!this._floatingEyes || !this._floatingEyeLayout)
+            return;
+
+        this._floatingEyes.forEach((eye, index) => {
+            const layout = this._floatingEyeLayout[index];
+            eye.ease({
+                x: layout.x + offset,
+                duration: 65,
+                mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            });
+        });
+    }
+
+    _ensureFloatingSaccades() {
+        const copilotWorking = this._phase === 'idle'
+            && Boolean(this._overlay)
+            && this._getCopilotStatus() === 'working';
+        if (this._disposed || !copilotWorking || !this._floatingEyes?.length
+            || this._floatingSaccadeTimer) {
+            if ((this._disposed || !copilotWorking) && this._floatingSaccadeTimer)
+                this._stopFloatingSaccades();
+            return;
+        }
+
+        this._floatingSaccadeTimer = GLib.timeout_add(
+            GLib.PRIORITY_DEFAULT,
+            FLOATING_SACCADE_INTERVAL_MS,
+            () => {
+                if (this._disposed || this._phase !== 'idle' || !this._overlay
+                    || this._getCopilotStatus() !== 'working' || !this._floatingEyes?.length) {
+                    this._floatingSaccadeTimer = 0;
+                    this._stopFloatingSaccades();
+                    return GLib.SOURCE_REMOVE;
+                }
+
+                this._setFloatingEyeOffset(this._floatingSaccadeDirection * 2);
+                this._floatingSaccadeDirection *= -1;
+                if (this._floatingSaccadeRestoreTimer)
+                    GLib.source_remove(this._floatingSaccadeRestoreTimer);
+                this._floatingSaccadeRestoreTimer = GLib.timeout_add(
+                    GLib.PRIORITY_DEFAULT,
+                    FLOATING_SACCADE_DURATION_MS,
+                    () => {
+                        this._floatingSaccadeRestoreTimer = 0;
+                        this._setFloatingEyeOffset(0);
+                        return GLib.SOURCE_REMOVE;
+                    },
+                );
+                return GLib.SOURCE_CONTINUE;
+            },
+        );
+    }
+
+    _stopFloatingSaccades() {
+        if (this._floatingSaccadeTimer) {
+            GLib.source_remove(this._floatingSaccadeTimer);
+            this._floatingSaccadeTimer = 0;
+        }
+        if (this._floatingSaccadeRestoreTimer) {
+            GLib.source_remove(this._floatingSaccadeRestoreTimer);
+            this._floatingSaccadeRestoreTimer = 0;
+        }
+        this._setFloatingEyeOffset(0);
+    }
+
+    _setFloatingPose(pose, animate = true) {
+        if (!this._floatingRobotIcons || !this._floatingRobotCanvas)
+            return;
+
+        const shouldSquint = pose === 'threeQuarter'
+            && Boolean(this._overlay)
+            && this._phase === 'idle'
+            && this._getCopilotStatus() === 'working';
+        const poseChanged = this._floatingPose !== pose;
+        const squintChanged = this._floatingEyesSquinting !== shouldSquint;
+        this._floatingEyeLayout = pose === 'front'
+            ? [
+                { x: 35, y: 52, width: 16, height: 12 },
+                { x: 61, y: 52, width: 16, height: 12 },
+            ]
+            : [
+                { x: 66, y: 54, width: 10, height: 12, rotation: -12 },
+                { x: 80, y: 51, width: 8, height: 11, scaleX: 0.7, rotation: -12 },
+            ];
+        if (!poseChanged && !squintChanged)
+            return;
+
+        if (poseChanged) {
+            this._floatingPose = pose;
+            this._floatingRobotIcon = this._floatingRobotIcons[pose];
+            this._positionFloatingEyes(0, animate);
+            for (const [iconPose, icon] of Object.entries(this._floatingRobotIcons)) {
+                const opacity = iconPose === pose ? 255 : 0;
+                icon.remove_all_transitions();
+                if (animate) {
+                    icon.ease({
+                        opacity,
+                        duration: FLOATING_POSE_CROSSFADE_MS,
+                        mode: Clutter.AnimationMode.EASE_IN_OUT_QUAD,
+                    });
+                } else {
+                    icon.opacity = opacity;
+                }
+            }
+            this._floatingRobotCanvas.opacity = 255;
+        }
+
+        if (squintChanged) {
+            this._floatingEyesSquinting = shouldSquint;
+            this._floatingEyes?.forEach(eye => {
+                eye.ease({
+                    scale_y: shouldSquint ? 0.68 : 1,
+                    duration: FLOATING_POSE_CROSSFADE_MS,
+                    mode: Clutter.AnimationMode.EASE_IN_OUT_QUAD,
+                });
+            });
         }
     }
 
+    _setRobotMood() {
+        const copilotStatus = this._getCopilotStatus();
+        let mood = ROBOT_MOOD_BY_PHASE[this._phase] ?? 'idle';
+        if (this._phase === 'idle') {
+            if (copilotStatus === 'ready')
+                mood = 'success';
+            else if (copilotStatus === 'attention')
+                mood = 'attention';
+            else if (copilotStatus === 'working')
+                mood = 'processing';
+        }
+        if (this._robotMood === mood) {
+            this._ensureFloatingBlink();
+            this._ensureFloatingSaccades();
+            return;
+        }
+
+        this._robotMood = mood;
+        const face = this._robotMoodIcons[mood];
+        if (this._indicatorIcon)
+            this._indicatorIcon.gicon = face;
+        if (mood === 'idle')
+            this._ensureFloatingBlink();
+        else
+            this._stopFloatingBlink();
+        if (mood === 'processing')
+            this._ensureFloatingSaccades();
+        else
+            this._stopFloatingSaccades();
+    }
+
+    _getCopilotStatusRecord(status = null) {
+        const priority = status ? [status] : ['attention', 'working', 'error', 'ready'];
+        for (const currentStatus of priority) {
+            let latest = null;
+            for (const record of this._copilotStatusBySession.values()) {
+                if (record.status === currentStatus
+                    && (!latest || record.createdAt > latest.createdAt))
+                    latest = record;
+            }
+            if (latest)
+                return latest;
+        }
+        return null;
+    }
+
+    _getPendingCopilotAttentionRecord() {
+        let latest = null;
+        for (const record of this._copilotStatusBySession.values()) {
+            if (record.status === 'attention'
+                && (!latest || record.createdAt > latest.createdAt))
+                latest = record;
+        }
+        return latest;
+    }
+
+    _getCopilotStatus() {
+        return this._getCopilotStatusRecord()?.status ?? 'idle';
+    }
+
+    _getRecentCopilotNotification() {
+        const candidates = ['error', 'ready']
+            .map(status => this._getCopilotStatusRecord(status))
+            .filter(Boolean)
+            .sort((left, right) => right.createdAt - left.createdAt);
+        const notification = candidates[0];
+        if (!notification)
+            return null;
+
+        const age = GLib.get_real_time() / 1_000_000 - notification.createdAt;
+        if (age < -5 || age > COPILOT_NOTIFICATION_DURATION_MS / 1000) {
+            this._copilotStatusBySession.delete(notification.sessionId);
+            return null;
+        }
+        return notification;
+    }
+
     _updateFloatingRobot() {
+        this._setRobotMood();
         if (!this._floatingButton)
             return;
 
-        let style = FLOATING_BUTTON_STYLES.active;
         let accessibleName = 'Abrir controles de dictado';
-        if (this._phase === 'idle') {
-            style = this._floatingHovered ? FLOATING_BUTTON_STYLES.idleHover : FLOATING_BUTTON_STYLES.idle;
+        const copilotState = this._getCopilotStatusRecord();
+        const copilotStatus = copilotState?.status ?? 'idle';
+        const project = copilotState?.project ? ` en ${copilotState.project}` : '';
+        if (this._phase === 'idle' && copilotStatus === 'ready') {
+            accessibleName = 'Copilot terminó; mostrar mensaje listo';
+        } else if (this._phase === 'idle' && copilotStatus === 'attention') {
+            accessibleName = `Copilot necesita atención${project}`;
+        } else if (this._phase === 'idle' && copilotStatus === 'error') {
+            accessibleName = `Copilot informó un error${project}`;
+        } else if (this._phase === 'idle' && copilotStatus === 'working') {
+            accessibleName = `Copilot trabajando${project}`;
         } else if (this._phase === 'recording') {
-            style = this._floatingHovered ? FLOATING_BUTTON_STYLES.recordingHover : FLOATING_BUTTON_STYLES.recording;
             accessibleName = 'Grabando; mostrar controles de dictado';
         } else if (this._phase === 'complete') {
-            style = this._floatingHovered ? FLOATING_BUTTON_STYLES.completeHover : FLOATING_BUTTON_STYLES.complete;
             accessibleName = 'Mensaje listo; mostrar resultado del dictado';
         } else if (this._phase === 'starting') {
             accessibleName = 'Iniciando dictado';
         } else if (this._phase === 'stopping') {
             accessibleName = 'Transcribiendo dictado';
         }
-        this._floatingButton.style = style;
+        this._floatingButton.style = FLOATING_BUTTON_STYLE;
         this._floatingButton.accessible_name = accessibleName;
-        if (this._phase !== 'idle' && this._phase !== 'complete')
-            this._floatingRobotIcon.opacity = 255;
+        const activePose = Boolean(this._overlay);
+        this._setFloatingPose(activePose ? 'threeQuarter' : 'front');
+        if (this._phase !== 'idle' && this._phase !== 'complete') {
+            this._floatingRobotCanvas.opacity = 255;
+            this._floatingRobotCanvas.scale_x = 1;
+            this._floatingRobotCanvas.scale_y = 1;
+            this._floatingRobotCanvas.translation_y = 0;
+        }
     }
 
     _toggleControls(anchor = this._floatingButton) {
@@ -464,12 +871,14 @@ export default class VoiceToTerminalExtension extends Extension {
 
     _startRecording() {
         this._stopTimers();
+        this._clearCopilotNotification();
         this._resultText = '';
         const focusedWindow = global.display.focus_window;
         this._targetWindow = focusedWindow?.get_window_type() === 0
             ? focusedWindow
             : this._lastWindow;
         this._phase = 'starting';
+        this._animateRobotHop(ROBOT_HOP_DIRECTION_BY_PHASE.starting);
         this._updatePanelIcon();
         this._updateOverlay();
         this._animate();
@@ -483,7 +892,7 @@ export default class VoiceToTerminalExtension extends Extension {
                 this._updatePanelIcon();
                 this._updateOverlay();
                 this._scheduleOverlayHide();
-                Main.notifyError('Voice to Terminal', `No se pudo iniciar la grabación. ${error}`);
+                Main.notifyError('Airi', `No se pudo iniciar la grabación. ${error}`);
                 return;
             }
 
@@ -500,7 +909,7 @@ export default class VoiceToTerminalExtension extends Extension {
                 this._runBackend(['--cancel'], () => {
                     this._phase = 'idle';
                     this._updatePanelIcon();
-                    Main.notifyError('Voice to Terminal', `No se pudo mostrar el control de grabación. ${error.message}`);
+                    Main.notifyError('Airi', `No se pudo mostrar el control de grabación. ${error.message}`);
                 });
             }
         });
@@ -512,6 +921,7 @@ export default class VoiceToTerminalExtension extends Extension {
 
         this._stopMeter();
         this._phase = 'stopping';
+        this._animateRobotHop(ROBOT_HOP_DIRECTION_BY_PHASE.stopping);
         this._updateOverlay();
         this._restoreTargetFocus();
         // Detener el micrófono no debe depender de que funcione la animación.
@@ -526,7 +936,7 @@ export default class VoiceToTerminalExtension extends Extension {
                 this._resultText = '';
                 this._updateOverlay();
                 this._scheduleOverlayHide();
-                Main.notifyError('Voice to Terminal', success
+                Main.notifyError('Airi', success
                     ? 'El dictado terminó, pero no se recibió el texto transcripto.'
                     : `Falló el dictado. ${error}`);
                 return;
@@ -534,7 +944,9 @@ export default class VoiceToTerminalExtension extends Extension {
 
             this._phase = 'complete';
             this._resultText = transcript.trim();
+            this._animateRobotHop(ROBOT_HOP_DIRECTION_BY_PHASE.complete);
             this._updateOverlay();
+            this._animateResultImpact();
             this._scheduleResultDismiss();
         });
         if (this._phase === 'stopping') {
@@ -542,10 +954,73 @@ export default class VoiceToTerminalExtension extends Extension {
                 this._updatePanelIcon();
                 this._animate();
             } catch (error) {
-                logError(error, 'Voice to Terminal: no se pudo actualizar la animación');
+                logError(error, 'Airi: no se pudo actualizar la animación');
                 this._hideOverlay();
             }
         }
+    }
+
+    _animateResultImpact() {
+        const overlay = this._overlay;
+        if (!overlay)
+            return;
+
+        overlay.ease({
+            translation_x: 4,
+            duration: 60,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            onComplete: () => {
+                if (this._overlay !== overlay || this._disposed)
+                    return;
+                overlay.ease({
+                    translation_x: -1,
+                    duration: 45,
+                    mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+                    onComplete: () => {
+                        if (this._overlay !== overlay || this._disposed)
+                            return;
+                        overlay.ease({
+                            translation_x: 0,
+                            duration: 60,
+                            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+                        });
+                    },
+                });
+            },
+        });
+    }
+
+    _animateRobotHop(direction) {
+        const robot = this._floatingRobotCanvas;
+        if (!robot || !this._floatingRobotVisible || this._disposed)
+            return;
+
+        const sequence = ++this._robotHopSequence;
+        const isCurrent = () => sequence === this._robotHopSequence
+            && this._floatingRobotCanvas === robot && !this._disposed;
+        robot.ease({
+            translation_x: direction * 4,
+            duration: 60,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            onComplete: () => {
+                if (!isCurrent())
+                    return;
+                robot.ease({
+                    translation_x: direction * -1,
+                    duration: 45,
+                    mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+                    onComplete: () => {
+                        if (!isCurrent())
+                            return;
+                        robot.ease({
+                            translation_x: 0,
+                            duration: 60,
+                            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+                        });
+                    },
+                });
+            },
+        });
     }
 
     _restoreTargetFocus() {
@@ -554,7 +1029,7 @@ export default class VoiceToTerminalExtension extends Extension {
             Main.panel.statusArea.quickSettings?.menu.close(PopupAnimation.NONE);
             this._targetWindow?.activate(global.get_current_time());
         } catch (error) {
-            logError(error, 'Voice to Terminal: no se pudo restaurar el foco');
+            logError(error, 'Airi: no se pudo restaurar el foco');
             this._targetWindow = null;
         }
     }
@@ -616,22 +1091,16 @@ export default class VoiceToTerminalExtension extends Extension {
             track_hover: true,
             style: OVERLAY_STYLE,
         });
-        this._robotAvatar = new St.Icon({
-            gicon: new Gio.FileIcon({ file: Gio.File.new_for_path(this._robotIconPath) }),
-            icon_size: 44,
-            style: 'background-color: rgba(99,181,255,0.1); border-radius: 14px; padding: 4px;',
-        });
-        box.add_child(this._robotAvatar);
         const statusBox = new St.BoxLayout({
             vertical: true,
             x_expand: true,
             y_align: Clutter.ActorAlign.CENTER,
-            style: 'spacing: 3px;',
+            style: 'spacing: 3px; padding-left: 24px;',
         });
-        const statusRow = new St.BoxLayout({ style: 'spacing: 8px;' });
-        this._dotsBox = new St.BoxLayout({ style: 'spacing: 4px;', visible: false });
-        const dotColors = ['#63b5ff', '#a347ff', '#43e987'];
-        const dotSizes = [7, 10, 7];
+        const statusRow = new St.BoxLayout({ style: 'spacing: 10px;' });
+        this._dotsBox = new St.BoxLayout({ style: 'spacing: 5px;', visible: false });
+        const dotColors = ['#10b981', '#34d399', '#047857'];
+        const dotSizes = [8, 12, 8];
         this._dots = dotColors.map((color, index) => {
             const dot = new St.Widget({
                 y_align: Clutter.ActorAlign.CENTER,
@@ -641,54 +1110,57 @@ export default class VoiceToTerminalExtension extends Extension {
             return dot;
         });
         this._meterBox = new St.BoxLayout({ style: 'spacing: 3px;', visible: false });
-        const meterHeights = [8, 13, 18, 13, 8];
+        const meterHeights = [10, 16, 24, 16, 10];
         this._meterBars = meterHeights.map(height => {
             const bar = new St.Widget({
                 y_align: Clutter.ActorAlign.CENTER,
-                style: `background-color: #ff8293; width: 3px; height: ${height}px; border-radius: 999px;`,
+                style: `background-color: #10b981; width: 4px; height: ${height}px; border-radius: 999px;`,
             });
             this._meterBox.add_child(bar);
             return bar;
         });
         this._overlayLabel = new St.Label({
             text: LABELS[this._phase] ?? '',
-            visible: this._phase !== 'idle',
-            style: 'color: white; font-size: 13pt; font-weight: 700;',
-        });
-        this._checkIcon = new St.Icon({
-            icon_name: 'emblem-ok-symbolic',
-            icon_size: 16,
-            visible: false,
-            style: 'color: #43e987;',
+            visible: true,
+            style: 'color: #334155; font-size: 15pt; font-weight: 700;',
         });
         statusRow.add_child(this._overlayLabel);
         statusRow.add_child(this._dotsBox);
         statusRow.add_child(this._meterBox);
-        statusRow.add_child(this._checkIcon);
+        this._sessionStatusLabel = new St.Label({
+            text: '',
+            visible: false,
+            y_align: Clutter.ActorAlign.CENTER,
+            style: 'max-width: 200px; color: rgba(71,85,105,0.86); font-size: 9pt;',
+        });
+        this._sessionStatusLabel.clutter_text.line_wrap = false;
+        this._sessionStatusLabel.clutter_text.ellipsize = Pango.EllipsizeMode.END;
         this._caption = new St.Label({
-            text: 'Dictado local',
+            text: '',
             x_expand: true,
             y_align: Clutter.ActorAlign.CENTER,
-            style: 'color: rgba(255,255,255,0.65); font-size: 9pt;',
+            style: 'color: rgba(71,85,105,0.86); font-size: 11pt;',
         });
+        this._caption.clutter_text.line_wrap = true;
         statusBox.add_child(statusRow);
+        statusBox.add_child(this._sessionStatusLabel);
         statusBox.add_child(this._caption);
         box.add_child(statusBox);
         this._actionIcon = new St.Icon({
             gicon: new Gio.FileIcon({ file: Gio.File.new_for_path(this._microphoneIconPath) }),
-            icon_size: 20,
+            icon_size: 24,
         });
         this._stopIcon = new St.Icon({
             icon_name: 'media-playback-stop-symbolic',
-            icon_size: 20,
+            icon_size: 22,
         });
         this._hideFloatingIcon = new St.Icon({
             icon_name: 'view-conceal-symbolic',
-            icon_size: 16,
+            icon_size: 18,
         });
         this._showFloatingIcon = new St.Icon({
             icon_name: 'view-reveal-symbolic',
-            icon_size: 16,
+            icon_size: 18,
         });
         this._floatingVisibilityButton = new St.Button({
             can_focus: true,
@@ -697,7 +1169,7 @@ export default class VoiceToTerminalExtension extends Extension {
             accessible_name: this._floatingRobotVisible
                 ? 'Ocultar robot flotante'
                 : 'Mostrar robot flotante',
-            style: 'background-color: rgba(99,181,255,0.12); border-radius: 999px; padding: 10px;',
+            style: 'color: #047857; background-color: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.3); border-radius: 999px; padding: 11px;',
         });
         this._floatingVisibilityButton.set_child(
             this._floatingRobotVisible ? this._hideFloatingIcon : this._showFloatingIcon,
@@ -711,7 +1183,7 @@ export default class VoiceToTerminalExtension extends Extension {
             reactive: true,
             track_hover: true,
             accessible_name: ACTIONS[this._phase] ?? ACTIONS.idle,
-            style: 'background-color: #7148d8; border-radius: 999px; padding: 12px;',
+            style: 'background-color: #10b981; border: 1px solid rgba(4,120,87,0.24); border-radius: 999px; padding: 12px; box-shadow: 0 3px 14px rgba(16,185,129,0.24);',
         });
         this._actionButton.set_child(this._actionIcon);
         this._displayedActionIcon = this._actionIcon;
@@ -723,19 +1195,27 @@ export default class VoiceToTerminalExtension extends Extension {
             this._overlayHovered = true;
             this._cancelOverlayHide();
             this._cancelResultDismiss();
+            this._cancelCopilotDismiss();
             return Clutter.EVENT_PROPAGATE;
         });
         this._overlay.connect('leave-event', () => {
             this._overlayHovered = false;
             if (this._phase === 'complete')
                 this._scheduleResultDismiss();
+            else if (this._copilotNotification)
+                this._scheduleCopilotDismiss();
             else
                 this._scheduleOverlayHide();
             return Clutter.EVENT_PROPAGATE;
         });
         Main.layoutManager.addTopChrome(this._overlay, { affectsStruts: false });
-        this._positionOverlay(true);
+        if (this._overlayAnchor === this._floatingButton)
+            Main.layoutManager.uiGroup.set_child_above_sibling(
+                this._floatingButton,
+                this._overlay,
+            );
         this._updateOverlay();
+        this._positionOverlay(true);
         if (this._phase === 'starting' || this._phase === 'stopping')
             this._animate();
     }
@@ -746,33 +1226,60 @@ export default class VoiceToTerminalExtension extends Extension {
             this._showOverlay(anchor);
         } catch (error) {
             this._hideOverlay();
-            Main.notifyError('Voice to Terminal', `No se pudo mostrar el control de dictado. ${error.message}`);
+            Main.notifyError('Airi', `No se pudo mostrar el control de dictado. ${error.message}`);
         }
     }
 
-    _positionOverlay(animate = false) {
+    _positionOverlay(animate = false, springResize = false) {
         const anchor = this._overlayAnchor ?? this._floatingButton;
         if (!anchor)
             return;
 
         const monitor = Main.layoutManager.primaryMonitor;
         const [anchorX, anchorY] = anchor.get_transformed_position();
-        const [anchorWidth] = anchor.get_transformed_size();
+        const [anchorWidth, anchorHeight] = anchor.get_transformed_size();
         const [, overlayWidth] = this._overlay.get_preferred_width(-1);
         const [, overlayHeight] = this._overlay.get_preferred_height(overlayWidth);
         const margin = 8;
         const minX = monitor.x + margin;
         const maxX = Math.max(minX, monitor.x + monitor.width - overlayWidth - margin);
-        let x = anchorX + anchorWidth + margin;
-        if (x + overlayWidth > monitor.x + monitor.width - margin)
-            x = anchorX - overlayWidth - margin;
+        const floatingAnchor = anchor === this._floatingButton;
+        let x = floatingAnchor
+            ? anchorX + anchorWidth - FLOATING_CARD_OVERLAP_PX
+            : anchorX + anchorWidth + margin;
+        if (x + overlayWidth > monitor.x + monitor.width - margin) {
+            x = floatingAnchor
+                ? anchorX - overlayWidth + FLOATING_CARD_OVERLAP_PX
+                : anchorX - overlayWidth - margin;
+        }
         x = Math.min(Math.max(x, minX), maxX);
-        let y = Math.max(anchorY, monitor.y + (Main.panel.height || 32) + margin);
+        const anchorTop = floatingAnchor
+            ? anchorY + (anchorHeight - overlayHeight) / 2
+            : anchorY;
+        let y = Math.max(anchorTop, monitor.y + (Main.panel.height || 32) + margin);
 
         if (y + overlayHeight > monitor.y + monitor.height - margin)
             y = Math.max(monitor.y + margin, monitor.y + monitor.height - overlayHeight - margin);
 
-        if (animate) {
+        const hasAllocatedWidth = Number.isFinite(this._overlay.width) && this._overlay.width > 0;
+        if (springResize && hasAllocatedWidth) {
+            const sizeChanged = Math.abs(this._overlay.width - overlayWidth) > 1
+                || Math.abs((this._overlay.height ?? overlayHeight) - overlayHeight) > 1;
+            const positionChanged = Math.abs((this._overlay.x ?? x) - x) > 1
+                || Math.abs((this._overlay.y ?? y) - y) > 1;
+            if (sizeChanged || positionChanged) {
+                this._overlay.ease({
+                    x,
+                    y,
+                    width: overlayWidth,
+                    height: overlayHeight,
+                    duration: COPILOT_CARD_RESIZE_DURATION_MS,
+                    mode: Clutter.AnimationMode.EASE_OUT_BACK,
+                });
+            } else {
+                this._overlay.opacity = 255;
+            }
+        } else if (animate) {
             this._overlay.set_position(x, Math.max(monitor.y + margin, y - 8));
             this._overlay.opacity = 0;
             this._overlay.ease({
@@ -784,7 +1291,58 @@ export default class VoiceToTerminalExtension extends Extension {
         } else {
             this._overlay.set_position(x, y);
             this._overlay.opacity = 255;
+            if (springResize) {
+                this._overlay.width = overlayWidth;
+                this._overlay.height = overlayHeight;
+            }
         }
+    }
+
+    _applyCopilotShimmerColor() {
+        if (!this._overlayLabel)
+            return;
+
+        const color = COPILOT_SHIMMER_COLORS[this._copilotShimmerIndex];
+        this._overlayLabel.style = `color: ${color}; font-size: 15pt; font-weight: 700; transition-duration: ${COPILOT_SHIMMER_STEP_MS}ms;`;
+    }
+
+    _updateCopilotShimmer(active) {
+        if (!active || !this._overlayLabel) {
+            this._stopCopilotShimmer();
+            return;
+        }
+        if (this._copilotShimmerTimer) {
+            this._applyCopilotShimmerColor();
+            return;
+        }
+
+        this._copilotShimmerIndex = 0;
+        this._applyCopilotShimmerColor();
+        this._copilotShimmerTimer = GLib.timeout_add(
+            GLib.PRIORITY_DEFAULT,
+            COPILOT_SHIMMER_STEP_MS,
+            () => {
+                if (this._disposed || !this._overlay || !this._overlayLabel
+                    || this._phase !== 'idle' || this._copilotNotification
+                    || !this._getCopilotStatusRecord('working')) {
+                    this._copilotShimmerTimer = 0;
+                    return GLib.SOURCE_REMOVE;
+                }
+
+                this._copilotShimmerIndex = (this._copilotShimmerIndex + 1)
+                    % COPILOT_SHIMMER_COLORS.length;
+                this._applyCopilotShimmerColor();
+                return GLib.SOURCE_CONTINUE;
+            },
+        );
+    }
+
+    _stopCopilotShimmer() {
+        if (this._copilotShimmerTimer) {
+            GLib.source_remove(this._copilotShimmerTimer);
+            this._copilotShimmerTimer = 0;
+        }
+        this._copilotShimmerIndex = 0;
     }
 
     _updateOverlay() {
@@ -792,21 +1350,55 @@ export default class VoiceToTerminalExtension extends Extension {
         if (!this._overlay)
             return;
 
+        const copilotNotification = this._phase === 'idle' ? this._copilotNotification : null;
         const status = this._phase === 'stopping' ? 'transcribing' : this._phase;
-        this._overlayLabel.text = LABELS[status] ?? '';
-        this._overlayLabel.visible = status !== 'idle';
-        const statusColor = status === 'recording'
-            ? '#9fe8ff'
-            : status === 'transcribing' ? '#d2b7ff'
-                : status === 'complete' ? '#43e987' : 'white';
-        this._overlayLabel.style = `color: ${statusColor}; font-size: 13pt; font-weight: 700;`;
-        this._caption.text = this._phase === 'complete'
-            ? this._resultPreview()
-            : 'Dictado local';
-        this._caption.style = this._phase === 'complete'
-            ? 'color: rgba(255,255,255,0.85); font-size: 9pt;'
-            : 'color: rgba(255,255,255,0.65); font-size: 9pt;';
-        this._checkIcon.visible = this._phase === 'complete';
+        const workingSession = this._getCopilotStatusRecord('working');
+        const showControls = !copilotNotification;
+        const showCaption = this._phase === 'complete' || Boolean(copilotNotification);
+        const copilotWorkingVisible = this._phase === 'idle'
+            && !copilotNotification
+            && Boolean(workingSession);
+        this._overlayLabel.text = copilotNotification
+            ? copilotNotification.title
+            : copilotWorkingVisible
+                ? COPILOT_STATUS_LABELS.working
+                : LABELS[status] ?? 'Listo para dictar';
+        this._overlayLabel.visible = true;
+        const visibleCopilotStatus = copilotNotification?.status ?? (workingSession ? 'working' : null);
+        const statusColor = visibleCopilotStatus
+            ? COPILOT_NOTIFICATION_COLORS[visibleCopilotStatus] ?? '#059669'
+            : status === 'recording'
+            ? '#047857'
+            : status === 'transcribing' ? '#0f766e'
+                : status === 'complete' ? '#059669' : '#334155';
+        this._overlayLabel.style = `color: ${statusColor}; font-size: 15pt; font-weight: 700;`;
+        const workingDetails = workingSession
+            ? [workingSession.project, workingSession.taskSummary].filter(Boolean).join(' · ')
+            : '';
+        this._sessionStatusLabel.text = workingDetails;
+        this._sessionStatusLabel.visible = Boolean(workingDetails);
+        this._updateCopilotShimmer(copilotWorkingVisible);
+        let notificationMessage = copilotNotification?.message ?? '';
+        if (copilotNotification?.status === 'attention') {
+            const taskContext = copilotNotification.taskSummary
+                ? ` · ${copilotNotification.taskSummary}`
+                : '';
+            notificationMessage = [
+                `Proyecto: ${copilotNotification.project || 'tu proyecto'}${taskContext}`,
+                copilotNotification.message,
+            ].filter(Boolean).join('\n');
+        } else if (copilotNotification?.status === 'error' && copilotNotification.project) {
+            notificationMessage = `Proyecto: ${copilotNotification.project}\n${notificationMessage}`;
+        }
+        this._caption.text = copilotNotification
+            ? notificationMessage
+            : this._phase === 'complete' ? this._resultPreview() : '';
+        this._caption.visible = showCaption;
+        this._caption.style = this._phase === 'complete' || copilotNotification
+            ? 'color: rgba(15,23,42,0.88); font-size: 11pt;'
+            : 'color: rgba(71,85,105,0.86); font-size: 11pt;';
+        this._floatingVisibilityButton.visible = showControls;
+        this._actionButton.visible = showControls;
         this._dotsBox.visible = this._phase === 'starting' || this._phase === 'stopping';
         this._meterBox.visible = this._phase === 'recording';
         const visibilityIcon = this._floatingRobotVisible
@@ -828,12 +1420,16 @@ export default class VoiceToTerminalExtension extends Extension {
         this._actionButton.reactive = this._phase === 'idle'
             || this._phase === 'recording'
             || this._phase === 'complete';
-        this._overlay.style = this._phase === 'recording' ? RECORDING_OVERLAY_STYLE : OVERLAY_STYLE;
+        this._overlay.style = copilotNotification
+            ? NOTIFICATION_OVERLAY_STYLE
+            : this._phase === 'idle'
+                ? IDLE_OVERLAY_STYLE
+                : this._phase === 'recording' ? RECORDING_OVERLAY_STYLE : OVERLAY_STYLE;
         this._actionButton.style = this._phase === 'recording'
-            ? 'background-color: #a83e62; border-radius: 999px; padding: 12px;'
+            ? 'background-color: #047857; border: 1px solid rgba(5,150,105,0.5); border-radius: 999px; padding: 12px; box-shadow: 0 3px 14px rgba(16,185,129,0.24);'
             : this._phase === 'starting' || this._phase === 'stopping'
-                ? 'background-color: #51445f; border-radius: 999px; padding: 12px;'
-                : 'background-color: #7148d8; border-radius: 999px; padding: 12px;';
+                ? 'background-color: #d1fae5; border: 1px solid rgba(16,185,129,0.24); border-radius: 999px; padding: 12px;'
+                : 'background-color: #10b981; border: 1px solid rgba(4,120,87,0.24); border-radius: 999px; padding: 12px; box-shadow: 0 3px 14px rgba(16,185,129,0.24);';
 
         if (this._phase === 'idle' || this._phase === 'starting' || this._phase === 'complete') {
             this._dots.forEach(dot => {
@@ -842,6 +1438,7 @@ export default class VoiceToTerminalExtension extends Extension {
                 dot.scale_y = 1;
             });
         }
+        this._positionOverlay(false, true);
     }
 
     _resultPreview() {
@@ -876,10 +1473,10 @@ export default class VoiceToTerminalExtension extends Extension {
             } catch (error) {
                 this._meterTimer = 0;
                 this._updateMeterBars(0);
-                logError(error, 'Voice to Terminal: falló el medidor del micrófono');
+                logError(error, 'Airi: falló el medidor del micrófono');
                 if (!this._meterErrorNotified) {
                     this._meterErrorNotified = true;
-                    Main.notifyError('Voice to Terminal', `Falló el medidor del micrófono. ${error.message}`);
+                    Main.notifyError('Airi', `Falló el medidor del micrófono. ${error.message}`);
                 }
                 return GLib.SOURCE_REMOVE;
             }
@@ -903,6 +1500,260 @@ export default class VoiceToTerminalExtension extends Extension {
         this._updateMeterBars(0);
     }
 
+    _startCopilotNotificationWatcher() {
+        if (!this._copilotNotificationDirectory || this._copilotNotificationTimer)
+            return;
+
+        this._copilotNotificationTimer = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 500, () => {
+            if (this._disposed) {
+                this._copilotNotificationTimer = 0;
+                return GLib.SOURCE_REMOVE;
+            }
+            this._pollCopilotNotifications();
+            return GLib.SOURCE_CONTINUE;
+        });
+    }
+
+    _stopCopilotNotificationWatcher() {
+        if (this._copilotNotificationTimer) {
+            GLib.source_remove(this._copilotNotificationTimer);
+            this._copilotNotificationTimer = 0;
+        }
+    }
+
+    _pollCopilotNotifications() {
+        if (this._disposed || this._phase !== 'idle' || !this._copilotNotificationDirectory)
+            return;
+
+        const directory = Gio.File.new_for_path(this._copilotNotificationDirectory);
+        if (!directory.query_exists(null))
+            return;
+
+        let enumerator;
+        try {
+            enumerator = directory.enumerate_children(
+                'standard::name',
+                Gio.FileQueryInfoFlags.NONE,
+                null,
+            );
+            const names = [];
+            let info;
+            while ((info = enumerator.next_file(null)) !== null) {
+                const name = info.get_name();
+                if (name.endsWith('.json'))
+                    names.push(name);
+            }
+            enumerator.close(null);
+            enumerator = null;
+            names.sort();
+            for (const name of names) {
+                if (this._consumeCopilotNotification(name))
+                    return;
+            }
+            if (names.length === 0)
+                this._copilotNotificationErrorNotified = false;
+        } catch (error) {
+            if (enumerator) {
+                try {
+                    enumerator.close(null);
+                } catch (closeError) {
+                    logError(closeError, 'Airi: no se pudo cerrar el directorio de avisos');
+                }
+            }
+            this._reportCopilotNotificationError(error);
+        }
+    }
+
+    _consumeCopilotNotification(filename) {
+        const path = GLib.build_filenamev([this._copilotNotificationDirectory, filename]);
+        const file = Gio.File.new_for_path(path);
+        try {
+            const [success, contents] = file.load_contents(null);
+            if (!success)
+                throw new Error('No se pudo leer el archivo de aviso.');
+            const event = JSON.parse(new TextDecoder().decode(contents));
+            const status = event?.status ?? (event?.title === 'Copilot listo' ? 'ready' : null);
+            if (!event || typeof event.sessionId !== 'string' || !event.sessionId
+                || !['working', 'attention', 'ready', 'error', 'idle'].includes(status)
+                || typeof event.title !== 'string'
+                || typeof event.message !== 'string'
+                || (event.project !== undefined && typeof event.project !== 'string')
+                || (event.taskSummary !== undefined && typeof event.taskSummary !== 'string')
+                || (status !== 'working' && status !== 'idle' && !event.message.trim())
+                || !Number.isFinite(event.createdAt))
+                throw new Error('El aviso tiene un formato inválido.');
+
+            const age = GLib.get_real_time() / 1_000_000 - event.createdAt;
+            if (age < -5 || age > COPILOT_NOTIFICATION_MAX_AGE_SECONDS) {
+                file.delete(null);
+                return false;
+            }
+
+            const notification = {
+                ...event,
+                status,
+                project: event.project?.trim() ?? '',
+                taskSummary: event.taskSummary?.trim().slice(0, 80) ?? '',
+                message: event.message.trim(),
+            };
+            file.delete(null);
+            this._applyCopilotEvent(notification);
+            this._copilotNotificationErrorNotified = false;
+            return true;
+        } catch (error) {
+            this._updateFloatingRobot();
+            try {
+                file.delete(null);
+            } catch (deleteError) {
+                this._reportCopilotNotificationError(deleteError);
+            }
+            this._reportCopilotNotificationError(error);
+            return false;
+        }
+    }
+
+    _applyCopilotEvent(event) {
+        const { sessionId, status } = event;
+        const previous = this._copilotStatusBySession.get(sessionId);
+        const hopDirection = ROBOT_HOP_DIRECTION_BY_COPILOT_STATUS[status];
+        if (hopDirection !== undefined)
+            this._animateRobotHop(hopDirection);
+        const record = {
+            sessionId,
+            status,
+            title: event.title,
+            message: event.message,
+            project: event.project,
+            taskSummary: event.taskSummary || previous?.taskSummary || '',
+            createdAt: event.createdAt,
+        };
+        if (status === 'idle') {
+            this._copilotStatusBySession.delete(sessionId);
+        } else {
+            this._copilotStatusBySession.set(sessionId, record);
+        }
+
+        const pendingAttention = this._getPendingCopilotAttentionRecord();
+        if (pendingAttention) {
+            if (this._copilotNotification?.sessionId !== pendingAttention.sessionId
+                || this._copilotNotification.status !== 'attention') {
+                this._showCopilotNotification(pendingAttention);
+            } else {
+                this._updateOverlay();
+            }
+            this._updateFloatingRobot();
+            return;
+        }
+
+        if (status === 'working' || status === 'idle') {
+            if (this._copilotNotification?.sessionId === sessionId
+                && (status === 'working' || this._copilotNotification.status === 'attention')) {
+                this._clearCopilotNotification();
+                const nextNotification = this._getRecentCopilotNotification();
+                if (nextNotification)
+                    this._showCopilotNotification(nextNotification, false);
+                else if (this._overlay && this._phase === 'idle')
+                    this._hideOverlay();
+            }
+            if (this._overlay)
+                this._updateOverlay();
+            this._updateFloatingRobot();
+            return;
+        }
+
+        this._showCopilotNotification(record);
+    }
+
+    _showCopilotNotification(notification, playSound = true) {
+        this._cancelCopilotDismiss();
+        this._copilotNotification = notification;
+        this._cancelOverlayHide();
+        if (!this._overlay)
+            this._showOverlay(this._floatingButton ?? this._recordButton);
+        else {
+            this._updateOverlay();
+            this._positionOverlay();
+        }
+        this._scheduleCopilotDismiss();
+        if (playSound && this._copilotNotification.status !== 'error')
+            this._playCopilotNotificationSound();
+    }
+
+    _playCopilotNotificationSound() {
+        try {
+            const playerPath = GLib.find_program_in_path('canberra-gtk-play');
+            if (!playerPath)
+                throw new Error('No se encontró canberra-gtk-play.');
+
+            const process = Gio.Subprocess.new(
+                [
+                    playerPath,
+                    '--file=/usr/share/sounds/freedesktop/stereo/bell.oga',
+                    '--volume=3.0',
+                ],
+                Gio.SubprocessFlags.STDOUT_SILENCE | Gio.SubprocessFlags.STDERR_SILENCE,
+            );
+            process.wait_check_async(null, (soundProcess, result) => {
+                try {
+                    soundProcess.wait_check_finish(result);
+                } catch (error) {
+                    logError(error, 'Airi: falló el sonido del aviso de Copilot');
+                }
+            });
+        } catch (error) {
+            logError(error, 'Airi: no se pudo reproducir el sonido del aviso de Copilot');
+        }
+    }
+
+    _reportCopilotNotificationError(error) {
+        logError(error, 'Airi: no se pudo mostrar el aviso de Copilot');
+        if (this._copilotNotificationErrorNotified)
+            return;
+
+        this._copilotNotificationErrorNotified = true;
+        Main.notifyError('Airi', `No se pudo mostrar el aviso de Copilot. ${error.message}`);
+    }
+
+    _scheduleCopilotDismiss() {
+        if (!this._copilotNotification || this._phase !== 'idle'
+            || this._copilotNotification.status === 'attention'
+            || !this._overlay || this._overlayHovered)
+            return;
+
+        this._cancelCopilotDismiss();
+        this._copilotDismissTimer = GLib.timeout_add(
+            GLib.PRIORITY_DEFAULT,
+            COPILOT_NOTIFICATION_DURATION_MS,
+            () => {
+                this._copilotDismissTimer = 0;
+                if (this._copilotNotification && this._phase === 'idle'
+                    && this._overlay && !this._overlayHovered)
+                    this._fadeOutOverlay();
+                return GLib.SOURCE_REMOVE;
+            },
+        );
+    }
+
+    _cancelCopilotDismiss() {
+        if (this._copilotDismissTimer) {
+            GLib.source_remove(this._copilotDismissTimer);
+            this._copilotDismissTimer = 0;
+        }
+    }
+
+    _clearCopilotNotification() {
+        if (!this._copilotNotification)
+            return;
+
+        const status = this._copilotStatusBySession.get(this._copilotNotification.sessionId)?.status;
+        if (status === this._copilotNotification.status
+            && ['ready', 'error'].includes(status))
+            this._copilotStatusBySession.delete(this._copilotNotification.sessionId);
+        this._copilotNotification = null;
+        this._cancelCopilotDismiss();
+        this._updateFloatingRobot();
+    }
+
     _scheduleResultDismiss() {
         if (this._phase !== 'complete' || !this._overlay || this._overlayHovered)
             return;
@@ -918,7 +1769,9 @@ export default class VoiceToTerminalExtension extends Extension {
 
     _fadeOutOverlay() {
         const overlay = this._overlay;
-        if (!overlay)
+        const isDismissible = () => this._phase === 'complete'
+            || (this._phase === 'idle' && Boolean(this._copilotNotification));
+        if (!overlay || !isDismissible())
             return;
 
         overlay.ease({
@@ -926,7 +1779,7 @@ export default class VoiceToTerminalExtension extends Extension {
             duration: 180,
             mode: Clutter.AnimationMode.EASE_OUT_QUAD,
             onComplete: () => {
-                if (this._overlay !== overlay || this._phase !== 'complete')
+                if (this._overlay !== overlay || !isDismissible())
                     return;
                 if (this._overlayHovered)
                     overlay.opacity = 255;
@@ -944,6 +1797,10 @@ export default class VoiceToTerminalExtension extends Extension {
     }
 
     _scheduleOverlayHide() {
+        if (this._copilotNotification) {
+            this._scheduleCopilotDismiss();
+            return;
+        }
         if (this._phase !== 'idle' || !this._overlay
             || this._panelHovered || this._floatingHovered || this._overlayHovered)
             return;
@@ -993,6 +1850,7 @@ export default class VoiceToTerminalExtension extends Extension {
         this._stopDotsTimer();
         this._stopMeter();
         this._cancelResultDismiss();
+        this._cancelCopilotDismiss();
     }
 
     _stopDotsTimer() {
@@ -1003,8 +1861,10 @@ export default class VoiceToTerminalExtension extends Extension {
     }
 
     _hideOverlay() {
+        this._stopCopilotShimmer();
         this._stopTimers();
         this._cancelOverlayHide();
+        this._clearCopilotNotification();
         if (!this._overlay)
             return;
 
@@ -1017,13 +1877,12 @@ export default class VoiceToTerminalExtension extends Extension {
             this._resultText = '';
         }
         this._updateFloatingRobot();
-        this._robotAvatar = null;
         this._overlayLabel = null;
+        this._sessionStatusLabel = null;
         this._caption = null;
         this._dotsBox = null;
         this._meterBox = null;
         this._meterBars = [];
-        this._checkIcon = null;
         this._floatingVisibilityButton = null;
         this._hideFloatingIcon = null;
         this._showFloatingIcon = null;

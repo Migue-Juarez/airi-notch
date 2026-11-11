@@ -14,7 +14,7 @@ AUDIO_METER="$APP_HOME/audio_meter.py"
 notify() {
     [[ -z "${VOICE_TO_TERMINAL_QUIET:-}" ]] || return 0
     if [[ -n "$NOTIFY" ]]; then
-        "$NOTIFY" --app-name="Voice to Terminal" "$1" "$2" || printf 'voice-to-terminal: no se pudo mostrar la notificación\n' >&2
+        "$NOTIFY" --app-name="Airi" "$1" "$2" || printf 'voice-to-terminal: no se pudo mostrar la notificación\n' >&2
     else
         printf 'voice-to-terminal: notify-send no está instalado\n' >&2
     fi
@@ -65,7 +65,7 @@ exec 9>"$LOCK_FILE"
 if [[ "$MODE" == "--cancel" ]]; then
     flock -w 3 9 || fail "Hay otra operación en curso; no se pudo cancelar."
 elif ! flock -n 9; then
-    notify "Voice to Terminal" "Hay otra operación en curso."
+    notify "Airi" "Hay otra operación en curso."
     exit 1
 fi
 
@@ -177,7 +177,7 @@ if [[ -e "$PID_FILE" ]]; then
     rm -f -- "$PID_FILE"
     wait_for_meter
     trap 'rm -f -- "$AUDIO_FILE" "$PID_FILE" "$WINDOW_FILE" "$LEVEL_FILE" "$LEVEL_FILE".*.tmp "$METER_PID_FILE"' EXIT
-    notify "Voice to Terminal" "Transcribiendo localmente…"
+    notify "Airi" "Transcribiendo localmente…"
 
     if ! python3 - "$AUDIO_FILE" >/dev/null 2>&1 <<'PY'
 import sys
@@ -217,7 +217,7 @@ PY
     if ! run_xdotool type --clearmodifiers --delay 1 -- "$text"; then
         fail "La transcripción está lista, pero no se pudo escribir en la ventana enfocada."
     fi
-    notify "Voice to Terminal" "Texto escrito en la ventana enfocada."
+    notify "Airi" "Texto escrito en la ventana enfocada."
     if [[ "${VOICE_TO_TERMINAL_RETURN_TEXT:-}" == "1" ]]; then
         printf '%s\n' "$text"
     fi
@@ -256,5 +256,5 @@ else
         rm -f -- "$PID_FILE" "$AUDIO_FILE" "$WINDOW_FILE" "$LEVEL_FILE" "$LEVEL_FILE".*.tmp "$METER_PID_FILE"
         fail "No se pudo iniciar el medidor de audio."
     fi
-    notify "Voice to Terminal" "Grabando. Pulsa el icono otra vez para transcribir."
+    notify "Airi" "Grabando. Pulsa el icono otra vez para transcribir."
 fi

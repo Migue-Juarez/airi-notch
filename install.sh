@@ -116,7 +116,7 @@ fi
 chmod 755 "$ENTRYPOINT"
 ln -sfn "$ENTRYPOINT" "$LINK"
 
-[[ -f "$EXTENSION_SOURCE/metadata.json" && -f "$EXTENSION_SOURCE/extension.js" && -f "$EXTENSION_SOURCE/robot-face.svg" && -f "$EXTENSION_SOURCE/microphone.svg" ]] ||
+[[ -f "$EXTENSION_SOURCE/metadata.json" && -f "$EXTENSION_SOURCE/extension.js" && -f "$EXTENSION_SOURCE/robot-idle.png" && -f "$EXTENSION_SOURCE/robot-idle-open.png" && -f "$EXTENSION_SOURCE/robot-listening.png" && -f "$EXTENSION_SOURCE/robot-processing.png" && -f "$EXTENSION_SOURCE/robot-success.png" && -f "$EXTENSION_SOURCE/robot-frente-vacio.png" && -f "$EXTENSION_SOURCE/robot-34-vacio.png" && -f "$EXTENSION_SOURCE/microphone.svg" ]] ||
     die "No están los archivos de la extensión GNOME."
 if [[ -e "$EXTENSION_DIR" ]]; then
     [[ -f "$EXTENSION_DIR/metadata.json" ]] || die "La ruta de la extensión ya existe y no se sobrescribió."
@@ -124,11 +124,21 @@ if [[ -e "$EXTENSION_DIR" ]]; then
         die "La ruta de la extensión pertenece a otro componente y no se sobrescribió."
 fi
 mkdir -p "$EXTENSION_DIR"
-gnome-extensions pack --force --extra-source="$EXTENSION_SOURCE/robot-face.svg" \
+gnome-extensions pack --force --extra-source="$EXTENSION_SOURCE/robot-idle.png" \
+    --extra-source="$EXTENSION_SOURCE/robot-idle-open.png" \
+    --extra-source="$EXTENSION_SOURCE/robot-listening.png" \
+    --extra-source="$EXTENSION_SOURCE/robot-processing.png" \
+    --extra-source="$EXTENSION_SOURCE/robot-success.png" \
+    --extra-source="$EXTENSION_SOURCE/robot-frente-vacio.png" \
+    --extra-source="$EXTENSION_SOURCE/robot-34-vacio.png" \
     --extra-source="$EXTENSION_SOURCE/microphone.svg" \
     --out-dir "$APP_HOME" "$EXTENSION_SOURCE"
 install -m 644 "$EXTENSION_SOURCE/metadata.json" "$EXTENSION_SOURCE/extension.js" \
-    "$EXTENSION_SOURCE/robot-face.svg" "$EXTENSION_SOURCE/microphone.svg" "$EXTENSION_DIR/"
+    "$EXTENSION_SOURCE/robot-idle.png" "$EXTENSION_SOURCE/robot-listening.png" \
+    "$EXTENSION_SOURCE/robot-idle-open.png" \
+    "$EXTENSION_SOURCE/robot-processing.png" "$EXTENSION_SOURCE/robot-success.png" \
+    "$EXTENSION_SOURCE/robot-frente-vacio.png" "$EXTENSION_SOURCE/robot-34-vacio.png" \
+    "$EXTENSION_SOURCE/microphone.svg" "$EXTENSION_DIR/"
 
 enabled="$(gsettings get org.gnome.shell enabled-extensions)"
 enabled_with_extension="$(python3 - "$enabled" "$EXTENSION_UUID" <<'PY'

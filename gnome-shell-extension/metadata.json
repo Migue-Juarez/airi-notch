@@ -1,7 +1,7 @@
 {
   "uuid": "voice-to-terminal@migue.local",
-  "name": "Voice to Terminal",
-  "description": "Dictado local en la terminal enfocada.",
+  "name": "Airi",
+  "description": "Dictado local y avisos de finalización de Copilot.",
   "shell-version": ["46"],
   "version": 1
 }
