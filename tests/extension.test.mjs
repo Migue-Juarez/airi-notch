@@ -5,6 +5,7 @@ import { test } from 'node:test';
 
 function harness(files = new Map()) {
     const timers = new Map();
+    const timerDelays = new Map();
     const calls = [];
     const notifications = [];
     const sounds = [];
@@ -14,15 +15,28 @@ function harness(files = new Map()) {
     class Actor {
         constructor(props = {}) {
             Object.assign(this, props);
+            this.scale_x ??= 1;
+            this.scale_y ??= 1;
             this.events = {};
             this.children = [];
             this.easeCalls = [];
         }
         connect(name, callback) { this.events[name] = callback; return nextId++; }
+        disconnect() {}
         add_child(child) { this.children.push(child); }
+        remove_all_children() { this.children = []; }
         set_child(child) { this.child = child; }
+        set_policy(horizontal, vertical) { this.policy = [horizontal, vertical]; }
         set_position(x, y) { this.x = x; this.y = y; }
-        get_preferred_width() { return [this.preferredWidth ?? 260, this.preferredWidth ?? 260]; }
+        set_pivot_point(x, y) { this.pivotPoint = [x, y]; }
+        get_preferred_width() {
+            const styleWidthText = this.style?.match(/(?:^|;)\s*width:\s*(\d+(?:\.\d+)?)px/)?.[1];
+            const styleWidth = styleWidthText === undefined
+                ? undefined
+                : Number(styleWidthText);
+            const width = this.preferredWidth ?? styleWidth ?? 260;
+            return [width, width];
+        }
         get_preferred_height() { return [72, 72]; }
         get_transformed_position() { return [this.x ?? 1880, this.y ?? 0]; }
         get_transformed_size() { return [this.width ?? 40, this.height ?? 32]; }
@@ -53,6 +67,15 @@ function harness(files = new Map()) {
         connect(_signal, callback) { this.focusChanged = callback; return 1; },
         disconnect() {},
     };
+    const stageSignals = new Map();
+    const stage = {
+        connect(name, callback) {
+            const id = nextId++;
+            stageSignals.set(id, { name, callback });
+            return id;
+        },
+        disconnect(id) { stageSignals.delete(id); },
+    };
     const GLib = {
         build_filenamev: parts => parts.join('/'),
         get_home_dir: () => '/home/test',
@@ -63,9 +86,10 @@ function harness(files = new Map()) {
         find_program_in_path: name => `/usr/bin/${name}`,
         PRIORITY_DEFAULT: 0, PRIORITY_DEFAULT_IDLE: 1,
         SOURCE_REMOVE: false, SOURCE_CONTINUE: true,
-        timeout_add(_priority, _delay, callback) {
+        timeout_add(_priority, delay, callback) {
             const id = nextId++;
             timers.set(id, callback);
+            timerDelays.set(id, delay);
             return id;
         },
         idle_add(_priority, callback) {
@@ -73,15 +97,29 @@ function harness(files = new Map()) {
             timers.set(id, callback);
             return id;
         },
-        source_remove: id => timers.delete(id),
+        source_remove: id => {
+            timerDelays.delete(id);
+            return timers.delete(id);
+        },
     };
+    const statusAreaAdds = [];
     const Main = {
-        panel: { addToStatusArea() {}, statusArea: {
-            quickSettings: { menu: { close(animation) {
-                assert.equal(animation, 0);
-                focusEvents.push('close-menu');
-            } } },
-        } },
+        panel: {
+            addToStatusArea(...args) { statusAreaAdds.push(args); },
+            _centerBox: new Actor({
+                x: 860,
+                y: 0,
+                width: 200,
+                height: 32,
+                translation_x: 0,
+            }),
+            statusArea: {
+                quickSettings: { menu: { close(animation) {
+                    assert.equal(animation, 0);
+                    focusEvents.push('close-menu');
+                } } },
+            },
+        },
         layoutManager: {
             primaryMonitor: { x: 0, y: 0, width: 1920, height: 1080 },
             uiGroup: {
@@ -179,12 +217,20 @@ function harness(files = new Map()) {
                 EASE_OUT_BACK: 3,
             } },
         Pango: { EllipsizeMode: { END: 3 } },
-        St: { Icon: Actor, Widget: Actor, BoxLayout: Actor, Label, Button: Actor },
+        St: {
+            Icon: Actor,
+            Widget: Actor,
+            BoxLayout: Actor,
+            Label,
+            Button: Actor,
+            ScrollView: Actor,
+            PolicyType: { NEVER: 0, AUTOMATIC: 1 },
+        },
         PanelMenu: { Button: Actor },
         TextDecoder,
         TextEncoder,
         Extension: class { constructor() { this.uuid = 'voice-to-terminal@migue.local'; } },
-        global: { display, get_current_time: () => 1 },
+        global: { display, stage, get_current_time: () => 1 },
     });
     vm.runInContext(source, context);
     const extension = new context.TestExtension();
@@ -196,11 +242,12 @@ function harness(files = new Map()) {
         - Number(Boolean(extension._floatingBlinkRestoreTimer))
         - Number(Boolean(extension._floatingSaccadeTimer))
         - Number(Boolean(extension._floatingSaccadeRestoreTimer))
-        - Number(Boolean(extension._copilotShimmerTimer))
-        - Number(Boolean(extension._copilotNotificationTimer));
+        - Number(Boolean(extension._copilotNotificationTimer))
+        - Number(Boolean(extension._panelCenteringTimer));
     return {
-        extension, timers, calls, notifications, sounds, finish, win, display, focusEvents,
-        chromeActors, activeTimerCount, files,
+        extension, timers, timerDelays, calls, notifications, sounds, finish, win, display, focusEvents,
+        chromeActors, activeTimerCount, files, main: Main, stage, stageSignals,
+        statusAreaAdds,
     };
 }
 
@@ -211,7 +258,19 @@ function assertFloatingRobotHasNoBadge(button) {
     assert.match(button.style, /box-shadow: none/);
 }
 
-test('floating robot stays at upper left and opens the same controls as the panel icon', () => {
+test('Airi indicator sits right of the clock and is centered on screen', () => {
+    const h = harness();
+    assert.equal(h.statusAreaAdds.length, 1);
+    assert.equal(h.statusAreaAdds[0][1], h.extension._indicator);
+    assert.deepEqual(h.statusAreaAdds[0].slice(2), [1, 'center']);
+    h.extension._recordButton.x = 1010;
+    h.extension._recordButton.width = 40;
+    h.extension._centerPanelIndicator();
+    assert.equal(h.main.panel._centerBox.translation_x, -70);
+    h.extension.disable();
+});
+
+test('floating robot stays at upper left and opens compact controls', () => {
     const h = harness();
     assert.ok(h.extension._floatingButton);
     assert.deepEqual(
@@ -224,7 +283,14 @@ test('floating robot stays at upper left and opens the same controls as the pane
         h.extension._robotPosePaths.front);
     assert.equal(h.extension._floatingRobotIcons.front.opacity, 255);
     assert.equal(h.extension._floatingRobotIcons.threeQuarter.opacity, 0);
-    assert.equal(h.extension._floatingRobotCanvas.children.length, 4);
+    assert.equal(h.extension._floatingEyes.length, 2);
+    assert.equal(h.extension._floatingExpression, 'contento');
+    assert.equal(h.extension._floatingMouth.visible, true);
+    assert.equal(h.extension._floatingMouth.width, 22);
+    assert.match(h.extension._floatingMouth.style, /border-bottom: 4px solid/);
+    assert.match(h.extension._floatingEyes[0].style, /border-radius: 4px/);
+    assert.equal(h.extension._floatingHint.text, 'Abrir controles');
+    assert.equal(h.chromeActors.has(h.extension._floatingHint), false);
     assert.equal(h.extension._floatingButton.can_focus, true);
     assertFloatingRobotHasNoBadge(h.extension._floatingButton);
     h.extension._floatingButton.events['enter-event']();
@@ -261,25 +327,33 @@ test('floating robot stays at upper left and opens the same controls as the pane
     assert.ok(h.chromeActors.has(h.extension._floatingButton));
     h.extension._floatingButton.events.clicked();
     assert.ok(h.extension._overlay);
+    assert.equal(h.extension._overlayVariant, 'compact');
     assert.equal(h.extension._floatingRobotIcon.gicon.file.path,
         h.extension._robotPosePaths.threeQuarter);
     assert.equal(h.extension._floatingButton.raisedAbove, h.extension._overlay);
     assert.equal(h.extension._caption.clutter_text.line_wrap, true);
-    assert.match(h.extension._sessionStatusLabel.style, /max-width: 200px/);
-    assert.equal(h.extension._sessionStatusLabel.clutter_text.line_wrap, false);
-    assert.equal(h.extension._sessionStatusLabel.clutter_text.ellipsize, 3);
-    assert.equal(h.extension._overlay.x, 90);
+    assert.equal(h.extension._activeSessionsBox, null);
+    assert.equal(h.extension._compactSessionSummary.visible, false);
+    assert.equal(h.extension._overlay.x, 138);
     assert.equal(h.extension._caption.text, '');
     assert.equal(h.extension._caption.visible, false);
-    assert.match(h.extension._overlay.style, /min-width: 0px/);
-    assert.match(h.extension._overlay.children[0].style, /padding-left: 24px/);
-    assert.equal(h.extension._floatingVisibilityButton.visible, true);
-    assert.equal(h.extension._actionButton.visible, true);
+    assert.match(h.extension._overlay.style, /width: 340px/);
+    assert.match(h.extension._overlay.style, /background-color: #0e0e10/);
+    assert.equal(h.extension._overlay.children.length, 1);
+    assert.equal(h.extension._controlFooter.visible, true);
+    assert.equal(h.extension._floatingVisibilityButton.child.icon_size, 16);
+    assert.match(h.extension._floatingVisibilityButton.style, /width: 44px/);
+    assert.match(h.extension._actionButton.style, /width: 48px/);
+    assert.equal(h.extension._actionIcon.icon_size, 20);
     assert.match(h.extension._floatingVisibilityButton.style, /border-radius: 999px/);
-    assert.match(h.extension._floatingVisibilityButton.style, /color: #047857/);
-    assert.match(h.extension._floatingVisibilityButton.style, /rgba\(16,185,129,0\.12\)/);
-    assert.match(h.extension._actionButton.style, /background-color: #10b981/);
+    assert.match(h.extension._floatingVisibilityButton.style, /color: #b3b0a6/);
+    assert.match(h.extension._floatingVisibilityButton.style, /background-color: #1b1b1f/);
+    assert.match(h.extension._actionButton.style, /background-color: #4ffa9b/);
     assert.match(h.extension._actionButton.style, /border-radius: 999px/);
+    assert.match(h.extension._floatingEyes[0].style, /background-color: #4ffa9b/);
+    assert.match(h.extension._floatingEyes[0].style, /rgba\(79,250,155,0\.8\)/);
+    assert.match(h.extension._meterBars[0].style, /background-color: #35b06b/);
+    assert.match(h.extension._meterBars[2].style, /background-color: #4ffa9b/);
     assert.equal(h.calls.length, 1);
     h.extension._floatingButton.events.clicked();
     assert.equal(h.extension._overlay, null);
@@ -290,16 +364,99 @@ test('floating robot stays at upper left and opens the same controls as the pane
     assert.equal(h.chromeActors.size, 0);
 });
 
-test('floating card overlaps the robot when it opens to the left', () => {
+test('compact floating card leaves a gap from the robot when it opens to the left', () => {
     const h = harness();
     h.extension._floatingButton.set_position(1840, 46);
     h.extension._floatingButton.events.clicked();
 
     assert.ok(h.extension._overlay);
-    assert.equal(h.extension._overlay.x + 260, h.extension._floatingButton.x + 36);
-    assert.ok(h.extension._overlay.x + 260 <= 1920);
+    assert.equal(h.extension._overlay.x + 340, h.extension._floatingButton.x - 12);
+    assert.ok(h.extension._overlay.x + 340 <= 1920);
+    assert.match(h.extension._overlay.style, /width: 340px/);
     assert.equal(h.extension._floatingButton.raisedAbove, h.extension._overlay);
 
+    h.extension.disable();
+});
+
+test('top bar opens the expandable dashboard and switching anchors replaces it with compact controls', () => {
+    const h = harness();
+    h.extension._recordButton.events.clicked();
+
+    const expandedPanel = h.extension._overlay;
+    assert.equal(h.extension._overlayVariant, 'expanded');
+    assert.match(expandedPanel.style, /width: 600px/);
+    assert.equal(h.extension._panelHeading.text, 'Dictado');
+    assert.ok(h.extension._panelNavigationButtons.dictation);
+    assert.ok(h.extension._panelNavigationButtons.copilot);
+
+    h.extension._panelNavigationButtons.copilot.button.events.clicked();
+    assert.equal(h.extension._panelHeading.text, 'Copilot');
+    assert.equal(h.extension._activeSessionsBox.visible, true);
+    assert.equal(h.extension._activeSessionsEmptyState.visible, true);
+    assert.match(h.extension._panelNavigationButtons.copilot.text.style, /color: #e1a4fa/);
+    assert.match(h.extension._panelNavigationButtons.copilot.button.style,
+        /background-color: rgba\(177,36,212,0\.14\)/);
+    h.extension._panelNavigationButtons.dictation.button.events.clicked();
+    assert.equal(h.extension._panelHeading.text, 'Dictado');
+    assert.match(h.extension._panelNavigationButtons.dictation.text.style, /color: #4ffa9b/);
+
+    h.extension._floatingButton.events.clicked();
+    const compactPanel = h.extension._overlay;
+    assert.notEqual(compactPanel, expandedPanel);
+    assert.equal(expandedPanel.destroyed, true);
+    assert.equal(h.extension._overlayVariant, 'compact');
+    assert.equal(h.extension._activeSessionsBox, null);
+    assert.equal(h.chromeActors.size, 2);
+
+    h.extension._recordButton.events.clicked();
+    assert.equal(compactPanel.destroyed, true);
+    assert.equal(h.extension._overlayVariant, 'expanded');
+    assert.equal(h.chromeActors.size, 2);
+    h.extension.disable();
+});
+
+test('compact panel summarizes Copilot activity without showing the full session list', () => {
+    const h = harness();
+    h.extension._applyCopilotEvent({
+        sessionId: 'session-a',
+        status: 'working',
+        title: 'Copilot trabajando',
+        message: '',
+        project: 'voice-to-terminal',
+        sessionName: 'Airi design',
+        taskSummary: '',
+        createdAt: Date.now() / 1000,
+    });
+
+    h.extension._showControls(h.extension._floatingButton);
+    assert.equal(h.extension._overlayVariant, 'compact');
+    assert.equal(h.extension._overlayLabel.text, 'Copilot trabajando');
+    assert.equal(h.extension._compactSessionSummary.text, '1 sesión abierta de Copilot');
+    assert.equal(h.extension._compactSessionSummary.visible, true);
+    assert.equal(h.extension._activeSessionsBox, null);
+    h.extension.disable();
+});
+
+test('expanded panel width stays within the available monitor space', () => {
+    const h = harness();
+    h.main.layoutManager.primaryMonitor.width = 500;
+    h.extension._recordButton.set_position(450, 0);
+    h.extension._recordButton.events.clicked();
+
+    assert.match(h.extension._overlay.style, /width: 484px/);
+    assert.equal(h.extension._overlay.width, 484);
+    assert.equal(h.extension._overlay.x, 8);
+    assert.ok(h.extension._overlay.x + h.extension._overlay.width <= 492);
+    h.extension.disable();
+});
+
+test('expanded notch panel is centered on screen independently of its icon anchor', () => {
+    const h = harness();
+    h.extension._recordButton.set_position(1600, 0);
+    h.extension._recordButton.events.clicked();
+
+    assert.equal(h.extension._overlay.x, 660);
+    assert.equal(h.extension._overlay.y, 40);
     h.extension.disable();
 });
 
@@ -342,7 +499,7 @@ test('floating eyes glow and follow the three-quarter screen perspective', () =>
     const [nearEye, farEye] = h.extension._floatingEyes;
 
     assert.match(nearEye.style, /border: 1px solid/);
-    assert.match(nearEye.style, /box-shadow: 0 0 4px.*0 0 12px.*inset 0 0 2px/);
+    assert.match(nearEye.style, /box-shadow: 0 0 8px.*inset 0 0 2px rgba\(199,253,216,0\.4\)/);
     h.extension._setFloatingPose('threeQuarter', false);
 
     assert.equal(nearEye.rotation_angle_z, -12);
@@ -350,6 +507,186 @@ test('floating eyes glow and follow the three-quarter screen perspective', () =>
     assert.equal(farEye.y, nearEye.y - 3);
     assert.equal(farEye.scale_x, 0.7);
     h.extension.disable();
+});
+
+test('floating gaze follows nearby pointer and keeps expression props aligned', () => {
+    const h = harness();
+    const robot = h.extension;
+    robot._copilotStatusBySession.set('session-a', {
+        sessionId: 'session-a',
+        status: 'working',
+        createdAt: Date.now() / 1000,
+    });
+    robot._updateFloatingRobot();
+
+    assert.ok(robot._floatingGlasses.every(frame => frame.visible));
+    assert.match(robot._floatingGlasses[0].style, /#e1a4fa/);
+    const motion = [...h.stageSignals.values()]
+        .find(signal => signal.name === 'motion-event').callback;
+    const [robotX, robotY] = robot._floatingButton.get_transformed_position();
+    motion(null, {
+        get_coords: () => [robotX + 56 + 90, robotY + 56],
+    });
+
+    assert.equal(robot._floatingGazeOffset.x, 1.25);
+    assert.equal(robot._floatingEyes[0].x, robot._floatingEyeLayout[0].x + 1.25);
+    assert.equal(robot._floatingGlasses[0].x, robot._floatingEyeLayout[0].x - 2 + 1.25);
+    assert.equal(robot._floatingGlassesBridge.x, 51 + 1.25);
+
+    motion(null, {
+        get_coords: () => [robotX + 56 + 181, robotY + 56],
+    });
+    assert.equal(robot._floatingGazeOffset.x, 0);
+    assert.equal(robot._floatingGazeOffset.y, 0);
+    assert.equal(robot._floatingGlasses[0].x, robot._floatingEyeLayout[0].x - 2);
+
+    robot.disable();
+    assert.equal(h.stageSignals.size, 0);
+});
+
+test('floating robot reacts to hover and panel interactions without changing its pose', () => {
+    const h = harness();
+    const robot = h.extension;
+    const idleYawnId = robot._floatingYawnTimer;
+    robot._floatingButton.events['enter-event']();
+    assert.equal(robot._floatingExpression, 'guino');
+    assert.equal(robot._floatingYawnTimer, 0);
+    assert.equal(h.timers.has(idleYawnId), false);
+    const hintId = robot._floatingHintTimer;
+    const showHint = h.timers.get(hintId);
+    h.timers.delete(hintId);
+    assert.equal(showHint(), false);
+    assert.equal(robot._floatingHint.visible, true);
+    assert.equal(h.chromeActors.has(robot._floatingHint), true);
+    assert.deepEqual([robot._floatingHint.x, robot._floatingHint.y], [134, 87]);
+    assert.equal(robot._floatingPose, 'front');
+
+    const hoverId = robot._floatingHoverTimer;
+    const hover = h.timers.get(hoverId);
+    h.timers.delete(hoverId);
+    assert.equal(hover(), false);
+    assert.equal(robot._floatingExpression, 'enamorado');
+    assert.equal(robot._floatingEyeGlyphs[0].text, '♥');
+    assert.equal(robot._floatingEyeGlyphs[1].text, '♥');
+
+    robot._floatingButton.events['leave-event']();
+    assert.equal(robot._floatingExpression, 'contento');
+    assert.equal(robot._floatingHint.visible, false);
+    assert.equal(h.chromeActors.has(robot._floatingHint), false);
+    robot._showControls(robot._floatingButton);
+    assert.equal(robot._floatingExpression, 'saludo');
+
+    const greetingId = robot._floatingReactionTimer;
+    const greeting = h.timers.get(greetingId);
+    h.timers.delete(greetingId);
+    assert.equal(greeting(), false);
+    assert.equal(robot._floatingExpression, 'contento');
+    robot.disable();
+});
+
+test('floating robot uses expressive faces for dictation and Copilot states', () => {
+    const h = harness();
+    const robot = h.extension;
+    const setCopilotStatus = status => {
+        robot._copilotStatusBySession.clear();
+        if (status !== 'idle') {
+            robot._copilotStatusBySession.set('session-a', {
+                sessionId: 'session-a',
+                status,
+                createdAt: Date.now() / 1000,
+            });
+        }
+        robot._updateFloatingRobot();
+    };
+
+    setCopilotStatus('working');
+    assert.equal(robot._floatingExpression, 'animo');
+    assert.ok(robot._floatingGlasses.every(frame => frame.visible));
+    setCopilotStatus('attention');
+    assert.equal(robot._floatingExpression, 'sorpresa');
+    setCopilotStatus('error');
+    assert.equal(robot._floatingExpression, 'molesto');
+
+    robot._copilotStatusBySession.clear();
+    robot._phase = 'recording';
+    robot._updateFloatingRobot();
+    assert.equal(robot._floatingExpression, 'escucha');
+    robot._phase = 'stopping';
+    robot._updateFloatingRobot();
+    assert.equal(robot._floatingExpression, 'mareado');
+    assert.equal(robot._floatingEyeGlyphs[0].text, '◎');
+    assert.equal(robot._floatingEyeGlyphs[1].text, '◎');
+    robot._phase = 'complete';
+    robot._updateFloatingRobot();
+    assert.equal(robot._floatingExpression, 'orgulloso');
+
+    robot._phase = 'idle';
+    robot._applyCopilotEvent({
+        sessionId: 'session-a',
+        status: 'ready',
+        title: 'Copilot listo',
+        message: 'Tarea completada',
+        project: 'voice-to-terminal',
+        createdAt: Date.now() / 1000,
+    });
+    assert.equal(robot._floatingExpression, 'festejo');
+    assert.ok(robot._floatingCheeks.every(cheek => cheek.visible));
+    assert.match(robot._floatingCheeks[0].style, /background-color: #4ffa9b/);
+    robot.disable();
+});
+
+test('floating robot squashes and stretches on Copilot state transitions', () => {
+    const h = harness();
+    const robot = h.extension;
+    const canvas = robot._floatingRobotCanvas;
+    assert.deepEqual(canvas.pivotPoint, [0.5, 0.5]);
+    const setStatus = status => {
+        robot._copilotStatusBySession.clear();
+        robot._copilotStatusBySession.set('session-a', {
+            sessionId: 'session-a',
+            status,
+            createdAt: Date.now() / 1000,
+        });
+        robot._updateFloatingRobot();
+    };
+
+    let start = canvas.easeCalls.length;
+    setStatus('working');
+    assert.deepEqual(
+        canvas.easeCalls.slice(start).map(({ scale_x, scale_y, duration }) =>
+            [scale_x, scale_y, duration]),
+        [[1.05, 0.94, 90], [0.96, 1.06, 110], [1, 1, 140]],
+    );
+    start = canvas.easeCalls.length;
+    setStatus('ready');
+    assert.deepEqual(
+        canvas.easeCalls.slice(start).map(({ scale_x, scale_y, duration }) =>
+            [scale_x, scale_y, duration]),
+        [[1.05, 0.94, 90], [0.96, 1.1, 110], [1, 1, 140]],
+    );
+    robot.disable();
+});
+
+test('floating robot yawns once after three minutes of uninterrupted idle', () => {
+    const h = harness();
+    const robot = h.extension;
+    const yawnId = robot._floatingYawnTimer;
+    assert.ok(yawnId);
+    assert.equal(h.timerDelays.get(yawnId), 180000);
+
+    const yawn = h.timers.get(yawnId);
+    h.timers.delete(yawnId);
+    assert.equal(yawn(), false);
+    assert.equal(robot._floatingExpression, 'bostezo');
+    assert.equal(robot._floatingFaceAccents[1].text, 'z');
+
+    const reactionId = robot._floatingReactionTimer;
+    const finishYawn = h.timers.get(reactionId);
+    h.timers.delete(reactionId);
+    assert.equal(finishYawn(), false);
+    assert.equal(robot._floatingExpression, 'contento');
+    assert.ok(robot._floatingYawnTimer);
+    robot.disable();
 });
 
 test('Copilot working keeps the face visible and attention shows open waiting eyes', () => {
@@ -363,6 +700,7 @@ test('Copilot working keeps the face visible and attention shows open waiting ey
         title: 'Copilot trabajando',
         message: '',
         project: 'voice-to-terminal',
+        sessionName: 'Integrate Notification Tool with Speech-to-Text',
         taskSummary: 'Refactorizando Auth Hook',
         createdAt: Date.now() / 1000,
     }));
@@ -374,16 +712,20 @@ test('Copilot working keeps the face visible and attention shows open waiting ey
     assert.equal(h.extension._robotMood, 'processing');
     assert.equal(h.extension._floatingSaccadeTimer, 0);
     assert.equal(h.extension._floatingButton.accessible_name,
-        'Copilot trabajando en voice-to-terminal');
+        'Copilot trabajando: Integrate Notification Tool with Speech-to-Text');
     h.extension._showControls();
-    assert.equal(h.extension._overlayLabel.text, 'Copilot trabajando');
-    assert.equal(h.extension._sessionStatusLabel.text,
-        'voice-to-terminal · Refactorizando Auth Hook');
-    assert.equal(h.extension._sessionStatusLabel.visible, true);
+    assert.equal(h.extension._statusRow.visible, false);
+    assert.equal(h.extension._activeSessionsBox.visible, true);
+    assert.equal(h.extension._activeSessionsList.children.length, 1);
+    assert.equal(h.extension._activeSessionsList.children[0].children[0].text,
+        'Integrate Notification Tool with Speech-to-Text');
+    assert.equal(h.extension._activeSessionsList.children[0].children[1].text, 'Working');
+    assert.match(h.extension._activeSessionsList.children[0].children[1].style,
+        /color: #e1a4fa/);
+    assert.match(h.extension._sidebarStatusDot.style, /background-color: #e1a4fa/);
     assert.equal(h.extension._actionButton.child, h.extension._actionIcon);
     assert.equal(h.extension._floatingEyes[0].scale_y, 0.68);
     assert.equal(h.extension._floatingSaccadeTimer > 0, true);
-    assert.ok(h.extension._copilotShimmerTimer);
     assert.equal(h.sounds.length, 0);
     assert.equal(h.extension._floatingRobotIcon.gicon.file.path,
         h.extension._robotPosePaths.threeQuarter);
@@ -393,12 +735,6 @@ test('Copilot working keeps the face visible and attention shows open waiting ey
     assert.equal(h.extension._floatingRobotCanvas.scale_y ?? 1, 1);
     assert.equal(h.extension._indicatorIcon.scale_x ?? 1, 1);
     assert.equal(h.extension._indicatorIcon.scale_y ?? 1, 1);
-    const shimmer = h.timers.get(h.extension._copilotShimmerTimer);
-    const initialShimmerStyle = h.extension._overlayLabel.style;
-    assert.equal(shimmer(), true);
-    assert.notEqual(h.extension._overlayLabel.style, initialShimmerStyle);
-    assert.match(h.extension._overlayLabel.style, /transition-duration: 240ms/);
-
     const initialWidth = h.extension._overlay.width;
     h.extension._overlay.preferredWidth = initialWidth + 80;
     h.extension._updateOverlay();
@@ -427,21 +763,23 @@ test('Copilot working keeps the face visible and attention shows open waiting ey
         title: 'Copilot necesita permiso',
         message: 'Revisá la solicitud en la terminal para continuar.',
         project: 'voice-to-terminal',
+        sessionName: 'Integrate Notification Tool with Speech-to-Text',
         createdAt: Date.now() / 1000,
     }));
     poll();
 
     assert.equal(h.extension._overlayLabel.text, 'Copilot necesita permiso');
+    assert.equal(h.extension._overlayVariant, 'compact');
+    assert.equal(h.extension._activeSessionsBox, null);
     assert.equal(h.extension._caption.text,
-        'Proyecto: voice-to-terminal · Refactorizando Auth Hook\nRevisá la solicitud en la terminal para continuar.');
-    assert.match(h.extension._overlayLabel.style, /#0f766e/);
+        'Revisá la solicitud en la terminal para continuar.');
+    assert.match(h.extension._overlayLabel.style, /#f5a623/);
     assert.equal(h.extension._robotMood, 'attention');
     assert.equal(h.extension._floatingEyes[0].scale_y, 1);
-    assert.equal(h.extension._copilotShimmerTimer, 0);
     assert.equal(h.extension._floatingRobotIcon.gicon.file.path,
         h.extension._robotPosePaths.threeQuarter);
     assert.equal(h.sounds.length, 1);
-    assert.equal(h.extension._copilotDismissTimer, 0);
+    assert.ok(h.extension._copilotDismissTimer);
     assert.equal(h.extension._floatingRobotCanvas.scale_x ?? 1, 1);
 
     files.set(`${directory}/0003-other-working.json`, JSON.stringify({
@@ -508,6 +846,112 @@ test('Copilot working keeps the face visible and attention shows open waiting ey
     h.extension.disable();
 });
 
+test('active session without a title uses a neutral placeholder instead of its project', () => {
+    const files = new Map();
+    const h = harness(files);
+    const directory = '/run/user/1000/voice-to-terminal/copilot-notifications';
+    const poll = h.timers.get(h.extension._copilotNotificationTimer);
+    files.set(`${directory}/0001-working.json`, JSON.stringify({
+        sessionId: 'session-a',
+        status: 'working',
+        title: 'Copilot trabajando',
+        message: '',
+        project: 'voice-to-terminal',
+        createdAt: Date.now() / 1000,
+    }));
+
+    poll();
+    h.extension._showControls();
+
+    const row = h.extension._activeSessionsList.children[0];
+    assert.equal(h.extension._activeSessionsBox.visible, true);
+    assert.equal(row.children[0].text, 'Sesión sin título');
+    assert.equal(row.children[1].text, 'Working');
+    assert.doesNotMatch(row.children[0].text, /voice-to-terminal/);
+});
+
+test('restores active sessions from runtime state and reconciles removals', () => {
+    const files = new Map();
+    const h = harness(files);
+    const runtimeDirectory = '/run/user/1000/voice-to-terminal';
+    const statePath = `${runtimeDirectory}/active-sessions.json`;
+    const poll = h.timers.get(h.extension._copilotNotificationTimer);
+    const now = Date.now() / 1000;
+    h.extension._showControls();
+
+    files.set(statePath, JSON.stringify({
+        sessions: [
+            {
+                sessionId: 'session-a',
+                status: 'working',
+                sessionName: 'Session A',
+                createdAt: now - 1,
+            },
+            {
+                sessionId: 'session-b',
+                status: 'attention',
+                sessionName: 'Session B',
+                createdAt: now,
+            },
+            {
+                sessionId: 'session-c',
+                status: 'idle',
+                sessionName: 'Session C',
+                createdAt: now - 4,
+            },
+            {
+                sessionId: 'session-d',
+                status: 'ready',
+                sessionName: 'Session D',
+                createdAt: now - 3,
+            },
+            {
+                sessionId: 'session-e',
+                status: 'error',
+                sessionName: 'Session E',
+                createdAt: now - 2,
+            },
+        ],
+    }));
+
+    poll();
+
+    assert.equal(h.extension._activeSessionsBox.visible, true);
+    assert.deepEqual(
+        h.extension._activeSessionsList.children.map(row => row.children[1].text),
+        ['Necesita respuesta', 'Working', 'Error', 'Lista', 'En espera'],
+    );
+    assert.deepEqual(
+        h.extension._activeSessionsList.children.map(row => row.children[0].text),
+        ['Session B', 'Session A', 'Session E', 'Session D', 'Session C'],
+    );
+    assert.equal(h.extension._panelSubtitle.text, '5 sesiones abiertas');
+    assert.equal(h.extension._copilotNotification, null);
+    assert.equal(h.sounds.length, 0);
+
+    files.set(statePath, JSON.stringify({
+        sessions: [{
+            sessionId: 'session-b',
+            status: 'attention',
+            sessionName: 'Session B',
+            createdAt: Date.now() / 1000,
+        }],
+    }));
+    poll();
+    assert.deepEqual(
+        h.extension._activeSessionsList.children.map(row => row.children[0].text),
+        ['Session B'],
+    );
+
+    files.set(statePath, JSON.stringify({ sessions: [] }));
+    poll();
+    assert.equal(h.extension._activeSessionsBox.visible, true);
+    assert.equal(h.extension._activeSessionsEmptyState.visible, true);
+    assert.equal(h.extension._statusRow.visible, false);
+    assert.equal(h.extension._copilotStatusBySession.size, 0);
+    h.extension.disable();
+});
+
 test('dictation states hop sideways with short ease-out motion only', () => {
     const h = harness();
     const robot = h.extension._floatingRobotCanvas;
@@ -560,7 +1004,52 @@ test('Copilot events use distinct left and right hop directions', () => {
     h.extension.disable();
 });
 
-test('Copilot attention cancels an earlier completion timeout and remains visible', () => {
+test('open idle state stays listed and legacy idle events remove ended sessions', () => {
+    const files = new Map();
+    const h = harness(files);
+    const statePath = '/run/user/1000/voice-to-terminal/active-sessions.json';
+    const now = Date.now() / 1000;
+    h.extension._showControls();
+    h.extension._applyCopilotEvent({
+        sessionId: 'session-a',
+        status: 'working',
+        title: 'Copilot trabajando',
+        message: '',
+        project: 'voice-to-terminal',
+        createdAt: now,
+    });
+
+    assert.equal(h.extension._copilotStatusBySession.get('session-a').status, 'working');
+    h.extension._applyCopilotEvent({
+        sessionId: 'session-a',
+        status: 'idle',
+        title: 'Copilot inactivo',
+        message: '',
+        project: 'voice-to-terminal',
+        createdAt: now + 1,
+    });
+    assert.equal(h.extension._copilotStatusBySession.has('session-a'), false);
+
+    files.set(statePath, JSON.stringify({
+        sessions: [{
+            sessionId: 'session-a',
+            status: 'idle',
+            sessionName: 'Session A',
+            createdAt: now,
+        }],
+    }));
+    h.extension._syncCopilotActiveSessions();
+    assert.equal(h.extension._copilotStatusBySession.get('session-a').status, 'idle');
+    assert.equal(h.extension._activeSessionsList.children[0].children[1].text, 'En espera');
+    files.set(statePath, JSON.stringify({ sessions: [] }));
+    h.extension._syncCopilotActiveSessions();
+
+    assert.equal(h.extension._copilotStatusBySession.has('session-a'), false);
+    assert.equal(h.extension._activeSessionsEmptyState.visible, true);
+    h.extension.disable();
+});
+
+test('Copilot attention replaces a completion alert, then dismisses while its session stays active', () => {
     const files = new Map();
     const h = harness(files);
     const directory = '/run/user/1000/voice-to-terminal/copilot-notifications';
@@ -584,19 +1073,29 @@ test('Copilot attention cancels an earlier completion timeout and remains visibl
         title: 'Copilot necesita una respuesta',
         message: 'Respondé en la terminal para continuar.',
         project: 'project-b',
+        sessionName: 'Integrate Notification Tool with Speech-to-Text',
         createdAt: Date.now() / 1000,
     }));
     poll();
 
     assert.equal(h.extension._overlayLabel.text, 'Copilot necesita una respuesta');
-    assert.equal(h.extension._copilotDismissTimer, 0);
+    const attentionDismissId = h.extension._copilotDismissTimer;
+    assert.ok(attentionDismissId);
+    assert.notEqual(attentionDismissId, completionDismissId);
     assert.equal(h.timers.has(completionDismissId), false);
+    assert.equal(h.extension._activeSessionsBox, null);
     assert.equal(h.extension._caption.text,
-        'Proyecto: project-b\nRespondé en la terminal para continuar.');
+        'Respondé en la terminal para continuar.');
+    const dismiss = h.timers.get(attentionDismissId);
+    h.timers.delete(attentionDismissId);
+    assert.equal(dismiss(), false);
+    assert.equal(h.extension._overlay, null);
+    assert.equal(h.extension._copilotNotification, null);
+    assert.equal(h.extension._copilotStatusBySession.get('session-b').status, 'attention');
     h.extension.disable();
 });
 
-test('hiding a pending attention card keeps its session state and allows dictation controls', () => {
+test('dismissing an attention popup leaves its active session and dictation controls available', () => {
     const files = new Map();
     const h = harness(files);
     const directory = '/run/user/1000/voice-to-terminal/copilot-notifications';
@@ -610,20 +1109,22 @@ test('hiding a pending attention card keeps its session state and allows dictati
     }));
     h.timers.get(h.extension._copilotNotificationTimer)();
 
-    h.extension._toggleControls();
+    h.extension._floatingButton.events.clicked();
     assert.equal(h.extension._overlay, null);
     assert.equal(h.extension._copilotStatusBySession.get('session-a').status, 'attention');
 
-    h.extension._toggleControls();
+    h.extension._recordButton.events.clicked();
     assert.ok(h.extension._overlay);
-    assert.equal(h.extension._overlayLabel.text, 'Listo para dictar');
-    assert.equal(h.extension._sessionStatusLabel.visible, false);
-    assert.equal(h.extension._actionButton.visible, true);
+    assert.equal(h.extension._overlayVariant, 'expanded');
+    assert.equal(h.extension._activeSessionsBox.visible, true);
+    assert.equal(h.extension._activeSessionsList.children[0].children[1].text,
+        'Necesita respuesta');
+    assert.equal(h.extension._controlFooter.visible, true);
     assert.equal(h.extension._copilotStatusBySession.get('session-a').status, 'attention');
     h.extension.disable();
 });
 
-test('attention auto-clears when its session resumes, not when another session works', () => {
+test('active sessions keep per-session tags without re-showing dismissed attention popups', () => {
     const files = new Map();
     const h = harness(files);
     const directory = '/run/user/1000/voice-to-terminal/copilot-notifications';
@@ -634,12 +1135,14 @@ test('attention auto-clears when its session resumes, not when another session w
         title: 'Copilot necesita una respuesta',
         message: 'Respondé en la terminal para continuar.',
         project: 'voice-to-terminal',
+        sessionName: 'Session A',
         createdAt: Date.now() / 1000,
     }));
     poll();
 
     assert.equal(h.extension._attentionDismissButton, undefined);
     assert.equal(h.extension._overlayLabel.text, 'Copilot necesita una respuesta');
+    const attentionDismissId = h.extension._copilotDismissTimer;
 
     files.set(`${directory}/0002-other-working.json`, JSON.stringify({
         sessionId: 'session-b',
@@ -647,10 +1150,28 @@ test('attention auto-clears when its session resumes, not when another session w
         title: 'Copilot trabajando',
         message: '',
         project: 'another-project',
+        sessionName: 'Session B',
         createdAt: Date.now() / 1000,
     }));
     poll();
     assert.equal(h.extension._overlayLabel.text, 'Copilot necesita una respuesta');
+
+    const dismiss = h.timers.get(attentionDismissId);
+    h.timers.delete(attentionDismissId);
+    assert.equal(dismiss(), false);
+    assert.equal(h.extension._overlay, null);
+    assert.equal(h.extension._copilotStatusBySession.get('session-a').status, 'attention');
+
+    h.extension._showControls();
+    assert.equal(h.extension._activeSessionsList.children.length, 2);
+    assert.deepEqual(
+        h.extension._activeSessionsList.children.map(row => row.children[1].text),
+        ['Necesita respuesta', 'Working'],
+    );
+    assert.deepEqual(
+        h.extension._activeSessionsList.children.map(row => row.children[0].text),
+        ['Session A', 'Session B'],
+    );
 
     files.set(`${directory}/0003-resumed.json`, JSON.stringify({
         sessionId: 'session-a',
@@ -662,7 +1183,11 @@ test('attention auto-clears when its session resumes, not when another session w
     }));
     poll();
     assert.equal(h.extension._copilotNotification, null);
-    assert.equal(h.extension._overlay, null);
+    assert.equal(h.extension._activeSessionsList.children.length, 2);
+    assert.deepEqual(
+        h.extension._activeSessionsList.children.map(row => row.children[1].text),
+        ['Working', 'Working'],
+    );
 
     files.set(`${directory}/0004-attention.json`, JSON.stringify({
         sessionId: 'session-a',
@@ -674,6 +1199,7 @@ test('attention auto-clears when its session resumes, not when another session w
     }));
     poll();
     assert.equal(h.extension._overlayLabel.text, 'Copilot necesita otra respuesta');
+    assert.ok(h.extension._copilotDismissTimer);
     h.extension.disable();
 });
 
@@ -693,21 +1219,24 @@ test('Copilot errors show a red card without playing a sound', () => {
 
     assert.equal(h.extension._overlayLabel.text, 'Copilot encontró un error');
     assert.equal(h.extension._caption.text, 'Falló la llamada al modelo.');
-    assert.match(h.extension._overlayLabel.style, /#b91c1c/);
+    assert.match(h.extension._overlayLabel.style, /#ff7676/);
     assert.equal(h.sounds.length, 0);
     assert.equal(files.has(notificationPath), false);
     h.extension.disable();
 });
 
-test('Copilot completion notification opens the text-only card and dismisses cleanly', () => {
+test('Copilot completion notification opens beside the visible floating robot', () => {
     const files = new Map();
     const h = harness(files);
     const notificationPath = '/run/user/1000/voice-to-terminal/copilot-notifications/0001-ready.json';
-    const message = '¡Listo! Avancé con speech-to-text.\nRevisa mi respuesta.';
+    const sessionName = 'Implement Payment Validation Logic';
+    const message = `${sessionName}\n¡Listo! Podés revisar el avance del contexto.`;
     files.set(notificationPath, JSON.stringify({
         sessionId: 'session-a',
+        status: 'ready',
         title: 'Copilot listo',
         message,
+        sessionName,
         createdAt: Date.now() / 1000,
     }));
 
@@ -715,13 +1244,17 @@ test('Copilot completion notification opens the text-only card and dismisses cle
     poll();
 
     assert.ok(h.extension._overlay);
+    assert.equal(h.extension._overlayAnchor, h.extension._floatingButton);
+    assert.equal(h.extension._overlayVariant, 'compact');
     assert.equal(h.extension._overlayLabel.text, 'Copilot listo');
-    assert.equal(h.extension._caption.text, message);
+    assert.equal(h.extension._sessionTitle.text, sessionName);
+    assert.equal(h.extension._sessionTitle.visible, true);
+    assert.match(h.extension._sessionTitle.style, /font-size: 12pt/);
+    assert.match(h.extension._sessionTitle.style, /color: #e1a4fa/);
+    assert.equal(h.extension._caption.text, '¡Listo! Podés revisar el avance del contexto.');
     assert.equal(h.extension._caption.visible, true);
     assert.equal(h.extension._robotAvatar, undefined);
-    assert.equal(h.extension._overlay.children.length, 3);
-    assert.equal(h.extension._floatingVisibilityButton.visible, false);
-    assert.equal(h.extension._actionButton.visible, false);
+    assert.equal(h.extension._controlFooter.visible, false);
     assert.deepEqual(h.sounds, [[
         '/usr/bin/canberra-gtk-play',
         '--file=/usr/share/sounds/freedesktop/stereo/bell.oga',
@@ -740,6 +1273,27 @@ test('Copilot completion notification opens the text-only card and dismisses cle
     assert.equal(h.extension._copilotNotification, null);
     assert.equal(h.extension._robotMood, 'idle');
     assert.equal(h.notifications.length, 0);
+    h.extension.disable();
+});
+
+test('Copilot notification falls back to the top bar icon when the floating robot is hidden', () => {
+    const files = new Map();
+    const h = harness(files);
+    h.extension._toggleFloatingRobotVisibility();
+    const notificationPath = '/run/user/1000/voice-to-terminal/copilot-notifications/0001-ready.json';
+    files.set(notificationPath, JSON.stringify({
+        sessionId: 'session-a',
+        title: 'Copilot listo',
+        message: 'Copilot terminó.',
+        createdAt: Date.now() / 1000,
+    }));
+
+    h.timers.get(h.extension._copilotNotificationTimer)();
+
+    assert.equal(h.extension._floatingRobotVisible, false);
+    assert.equal(h.extension._overlayAnchor, h.extension._recordButton);
+    assert.equal(h.extension._overlayVariant, 'expanded');
+    assert.equal(h.extension._overlayLabel.text, 'Copilot listo');
     h.extension.disable();
 });
 
@@ -892,9 +1446,9 @@ test('hover highlights the panel icon; click opens controls without starting dic
     assert.equal(h.calls.length, 1);
     h.extension._recordButton.events.clicked();
     assert.ok(h.extension._overlay);
-    assert.ok(h.extension._overlay.x > 1000);
+    assert.equal(h.extension._overlay.x, 660);
     assert.equal(h.extension._robotAvatar, undefined);
-    assert.equal(h.extension._actionIcon.icon_size, 24);
+    assert.equal(h.extension._actionIcon.icon_size, 20);
     assert.equal(h.extension._phase, 'idle');
     assert.equal(h.extension._overlayLabel.text, 'Listo para dictar');
     assert.equal(h.extension._overlayLabel.visible, true);
@@ -903,11 +1457,15 @@ test('hover highlights the panel icon; click opens controls without starting dic
     assert.equal(h.extension._actionIcon.gicon.file.path,
         '/home/test/.local/share/gnome-shell/extensions/voice-to-terminal@migue.local/microphone.svg');
     assert.equal(h.extension._actionButton.child, h.extension._actionIcon);
-    assert.equal(h.extension._overlay.children.length, 3);
-    assert.equal(h.extension._overlay.children[0].x_expand, true);
-    assert.equal(h.extension._overlay.children[0].y_align, 0);
-    assert.equal(h.extension._overlay.children[1], h.extension._floatingVisibilityButton);
-    assert.equal(h.extension._overlay.children[2], h.extension._actionButton);
+    assert.equal(h.extension._overlayVariant, 'expanded');
+    assert.equal(h.extension._overlay.children.length, 2);
+    assert.equal(h.extension._overlay.children[1].x_expand, true);
+    const expandedContent = h.extension._overlay.children[1];
+    assert.equal(expandedContent.y_expand, true);
+    assert.equal(expandedContent.children.at(-1), h.extension._controlFooter);
+    assert.equal(expandedContent.children.at(-2).y_expand, true);
+    assert.equal(h.extension._controlFooter.children[0], h.extension._floatingVisibilityButton);
+    assert.equal(h.extension._controlFooter.children[2], h.extension._actionButton);
     assert.equal(h.calls.length, 1);
     h.extension._recordButton.events.clicked();
     assert.equal(h.extension._overlay, null);
@@ -1093,7 +1651,12 @@ test('disable cleans up timers and ignores callbacks from an older lifecycle', (
     h.extension._toggleRecording();
     h.finish();
     assert.equal(h.activeTimerCount(), 1);
+    const hint = h.extension._floatingHint;
+    h.extension._floatingButton.events['enter-event']();
+    assert.ok(h.extension._floatingHintTimer);
     h.extension.disable();
     assert.equal(h.timers.size, 0);
+    assert.equal(h.chromeActors.has(hint), false);
+    assert.equal(hint.destroyed, true);
     assert.equal(h.calls.at(-1)[0], '--cancel');
 });

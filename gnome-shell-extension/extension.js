@@ -56,32 +56,243 @@ const ROBOT_HOP_DIRECTION_BY_COPILOT_STATUS = {
 const PANEL_BUTTON_STYLE = 'background-color: transparent; border: 0; padding: 0; border-radius: 999px; transition-duration: 150ms;';
 const PANEL_BUTTON_HOVER_STYLE = 'background-color: rgba(255,255,255,0.12); border: 0; padding: 0; border-radius: 999px; transition-duration: 150ms;';
 const FLOATING_BUTTON_SIZE = 112;
-const FLOATING_CARD_OVERLAP_PX = 36;
+const FLOATING_CARD_GAP_PX = 12;
 const FLOATING_POSE_CROSSFADE_MS = 180;
 const FLOATING_BLINK_INTERVAL_MS = 4500;
 const FLOATING_BLINK_DURATION_MS = 130;
 const FLOATING_SACCADE_INTERVAL_MS = 1100;
 const FLOATING_SACCADE_DURATION_MS = 90;
-const COPILOT_SHIMMER_STEP_MS = 240;
+const FLOATING_HOVER_HINT_DELAY_MS = 350;
+const FLOATING_HOVER_HINT_WIDTH_PX = 136;
+const FLOATING_HOVER_HINT_HEIGHT_PX = 30;
+const FLOATING_GAZE_RADIUS_PX = 180;
+const FLOATING_GAZE_MAX_X_PX = 2.5;
+const FLOATING_GAZE_MAX_Y_PX = 2;
+const FLOATING_BODY_SQUASH_DURATION_MS = 90;
+const FLOATING_BODY_STRETCH_DURATION_MS = 110;
+const FLOATING_BODY_SETTLE_DURATION_MS = 140;
 const COPILOT_CARD_RESIZE_DURATION_MS = 380;
-const COPILOT_SHIMMER_COLORS = ['#334155', '#64748b', '#cbd5e1', '#64748b'];
 const COPILOT_NOTIFICATION_DURATION_MS = 5000;
 const COPILOT_NOTIFICATION_MAX_AGE_SECONDS = 120;
+const ACTIVE_SESSIONS_MAX_HEIGHT_PX = 180;
+const EXPANDED_PANEL_WIDTH_PX = 600;
+const COMPACT_PANEL_WIDTH_PX = 340;
+const EMERALD_PALETTE = Object.freeze({
+    50: '#c7fdd8',
+    100: '#4ffa9b',
+    200: '#44da86',
+    300: '#3ec87b',
+    400: '#35b06b',
+    500: '#2c955a',
+    600: '#217848',
+    700: '#175b35',
+    800: '#0d3f23',
+    900: '#052311',
+    950: '#021508',
+});
+const SEANCE_PALETTE = Object.freeze({
+    50: '#f8edfe',
+    100: '#efd1fc',
+    200: '#e1a4fa',
+    300: '#d778f8',
+    400: '#ce41f5',
+    500: '#b124d4',
+    600: '#8f1bac',
+    700: '#6f1386',
+    800: '#550c68',
+    900: '#340540',
+    950: '#22022b',
+});
+const PANEL_COLORS = Object.freeze({
+    background: '#0e0e10',
+    surface: '#151518',
+    raised: '#1b1b1f',
+    text: '#f2ebd9',
+    muted: '#b3b0a6',
+    subtle: '#8e8e93',
+    accent: EMERALD_PALETTE[100],
+    accentGlow: 'rgba(79,250,155,0.8)',
+    accentSoft: 'rgba(79,250,155,0.12)',
+    accentBorder: 'rgba(68,218,134,0.55)',
+    accentSoftBorder: 'rgba(68,218,134,0.24)',
+    recordingBorder: 'rgba(62,200,123,0.62)',
+    copilotAccent: SEANCE_PALETTE[200],
+    copilotSoft: 'rgba(177,36,212,0.14)',
+    copilotBorder: 'rgba(206,65,245,0.3)',
+    copilotSurface: SEANCE_PALETTE[950],
+    blue: '#58b2ff',
+    attention: '#f5a623',
+    error: '#ff7676',
+    border: 'rgba(242,235,217,0.13)',
+    borderStrong: 'rgba(242,235,217,0.22)',
+});
 const COPILOT_NOTIFICATION_COLORS = {
-    working: '#0f766e',
-    attention: '#0f766e',
-    error: '#b91c1c',
-    ready: '#059669',
+    attention: PANEL_COLORS.attention,
+    error: PANEL_COLORS.error,
+    ready: PANEL_COLORS.accent,
 };
-const COPILOT_STATUS_LABELS = {
+const OPEN_COPILOT_SESSION_STATUSES = Object.freeze([
+    'idle', 'working', 'attention', 'ready', 'error',
+]);
+const COPILOT_SESSION_STATUS_PRIORITY = Object.freeze({
+    attention: 0,
+    working: 1,
+    error: 2,
+    ready: 3,
+    idle: 4,
+});
+const COPILOT_SESSION_STATUS_LABELS = Object.freeze({
+    idle: 'En espera',
+    working: 'Working',
+    attention: 'Necesita respuesta',
+    ready: 'Lista',
+    error: 'Error',
+});
+const COPILOT_OVERVIEW_STATUS_LABELS = Object.freeze({
+    idle: 'Copilot en espera',
     working: 'Copilot trabajando',
-};
+    attention: 'Necesita respuesta',
+    ready: 'Copilot listo',
+    error: 'Copilot con un error',
+});
 const FLOATING_BUTTON_STYLE = 'background-color: transparent; border: 0; outline: none; border-radius: 0; padding: 0; box-shadow: none;';
-const FLOATING_EYE_STYLE = 'background-color: #34d399; border: 1px solid rgba(167,243,208,0.72); border-radius: 2px; box-shadow: 0 0 4px rgba(209,250,229,0.9), 0 0 12px rgba(16,185,129,0.95), inset 0 0 2px rgba(236,253,245,0.85);';
-const IDLE_OVERLAY_STYLE = 'spacing: 16px; padding: 16px 20px; min-width: 0px; background-color: rgba(249,250,251,0.98); border: 1px solid rgba(203,213,225,0.94); border-radius: 24px; box-shadow: 0 10px 32px rgba(15,23,42,0.22);';
-const OVERLAY_STYLE = 'spacing: 16px; padding: 16px 20px; min-width: 400px; background-color: rgba(249,250,251,0.98); border: 1px solid rgba(203,213,225,0.94); border-radius: 24px; box-shadow: 0 10px 32px rgba(15,23,42,0.22);';
-const RECORDING_OVERLAY_STYLE = 'spacing: 16px; padding: 16px 20px; min-width: 400px; background-color: rgba(240,253,247,0.99); border: 1px solid rgba(16,185,129,0.72); border-radius: 24px; box-shadow: 0 10px 32px rgba(15,23,42,0.2);';
-const NOTIFICATION_OVERLAY_STYLE = 'spacing: 16px; padding: 16px 20px; min-width: 400px; background-color: rgba(249,250,251,0.99); border: 1px solid rgba(16,185,129,0.76); border-radius: 24px; box-shadow: 0 10px 32px rgba(15,23,42,0.22);';
+const FLOATING_EYE_STYLE = `background-color: ${PANEL_COLORS.accent}; border: 1px solid ${EMERALD_PALETTE[50]}; border-radius: 4px; box-shadow: 0 0 8px ${PANEL_COLORS.accentGlow}, inset 0 0 2px rgba(199,253,216,0.4);`;
+const FLOATING_GLASSES_STYLE = `background-color: rgba(14,14,16,0.14); border: 1px solid ${PANEL_COLORS.copilotAccent}; border-radius: 5px; box-shadow: 0 0 5px ${PANEL_COLORS.copilotBorder};`;
+const FLOATING_GLASSES_BRIDGE_STYLE = `background-color: ${PANEL_COLORS.copilotAccent}; border-radius: 2px;`;
+const FLOATING_EXPRESSION_MOUTH_STYLES = Object.freeze({
+    smile: `background-color: transparent; border-bottom: 4px solid ${PANEL_COLORS.accent}; border-radius: 0 0 999px 999px;`,
+    open: `background-color: ${PANEL_COLORS.accent}; border: 1px solid rgba(199,253,216,0.82); border-radius: 999px;`,
+    wave: `background-color: transparent; border-top: 2px solid ${PANEL_COLORS.accent}; border-bottom: 2px solid ${PANEL_COLORS.accent}; border-radius: 999px;`,
+    frown: `background-color: transparent; border-top: 3px solid ${PANEL_COLORS.error}; border-radius: 999px 999px 0 0;`,
+    flat: `background-color: ${PANEL_COLORS.accent}; border-radius: 999px;`,
+});
+const FLOATING_EXPRESSION_CONFIGS = Object.freeze({
+    contento: { mouth: 'smile', mouthWidth: 22, mouthHeight: 10 },
+    enamorado: {
+        eyeGlyph: '♥',
+        eyeGlyphColor: PANEL_COLORS.copilotAccent,
+        mouth: 'smile',
+        mouthWidth: 22,
+        mouthHeight: 10,
+        cheeks: true,
+        cheekOpacity: 90,
+        accents: ['♥', '♥'],
+        accentColor: PANEL_COLORS.copilotAccent,
+        cheekColor: PANEL_COLORS.copilotAccent,
+    },
+    sorpresa: {
+        eyeStyle: `background-color: ${PANEL_COLORS.accent}; border: 2px solid rgba(199,253,216,0.9); border-radius: 999px; box-shadow: 0 0 8px ${PANEL_COLORS.accentGlow};`,
+        eyeWidth: 14,
+        eyeHeight: 14,
+        mouth: 'open',
+        mouthWidth: 8,
+        mouthHeight: 13,
+        accents: ['!', ''],
+        accentColor: PANEL_COLORS.attention,
+    },
+    orgulloso: {
+        eyeScaleY: [0.12, 0.12],
+        eyeRotation: [-8, 8],
+        mouth: 'smile',
+        mouthWidth: 21,
+        mouthHeight: 10,
+        cheeks: true,
+        cheekOpacity: 90,
+        accents: ['✦', '✦'],
+        accentColor: PANEL_COLORS.accent,
+        cheekColor: PANEL_COLORS.accent,
+    },
+    guino: {
+        eyeScaleY: [0.12, 1],
+        mouth: 'smile',
+        mouthWidth: 22,
+        mouthHeight: 10,
+    },
+    bostezo: {
+        eyeScaleY: [0.5, 0.5],
+        mouth: 'open',
+        mouthWidth: 10,
+        mouthHeight: 15,
+        accents: ['', 'z'],
+        accentColor: PANEL_COLORS.subtle,
+    },
+    molesto: {
+        eyeStyle: `background-color: ${PANEL_COLORS.error}; border: 1px solid rgba(255,190,190,0.9); border-radius: 2px; box-shadow: 0 0 8px rgba(255,118,118,0.72);`,
+        eyeRotation: [-12, 12],
+        mouth: 'frown',
+        mouthWidth: 18,
+        mouthHeight: 8,
+        brows: true,
+    },
+    escucha: {
+        eyeStyle: `background-color: ${PANEL_COLORS.accent}; border: 1px solid rgba(199,253,216,0.85); border-radius: 999px; box-shadow: 0 0 8px ${PANEL_COLORS.accentGlow};`,
+        eyeWidth: 11,
+        eyeHeight: 11,
+        mouth: 'wave',
+        mouthWidth: 19,
+        mouthHeight: 7,
+        accents: ['((', '))'],
+        accentColor: PANEL_COLORS.accent,
+    },
+    mareado: {
+        eyeGlyph: '◎',
+        eyeGlyphColor: PANEL_COLORS.blue,
+        mouth: 'flat',
+        mouthWidth: 10,
+        mouthHeight: 4,
+        accents: ['✦', ''],
+        accentColor: PANEL_COLORS.blue,
+    },
+    festejo: {
+        eyeScaleY: [0.12, 0.12],
+        mouth: 'smile',
+        mouthWidth: 24,
+        mouthHeight: 11,
+        cheeks: true,
+        cheekOpacity: 110,
+        accents: ['✦', '✦'],
+        accentColor: PANEL_COLORS.copilotAccent,
+        cheekColor: PANEL_COLORS.accent,
+    },
+    saludo: {
+        eyeScaleY: [0.12, 1],
+        mouth: 'smile',
+        mouthWidth: 22,
+        mouthHeight: 10,
+        accents: ['〰', '〰'],
+        accentColor: PANEL_COLORS.accent,
+    },
+    animo: {
+        mouth: 'smile',
+        mouthWidth: 22,
+        mouthHeight: 10,
+        glasses: true,
+        accents: ['', ''],
+        accentColor: PANEL_COLORS.copilotAccent,
+    },
+});
+const FLOATING_HOVER_ADORE_DELAY_MS = 2000;
+const FLOATING_IDLE_YAWN_DELAY_MS = 180000;
+const FLOATING_TRANSIENT_REACTION_DURATION_MS = 1800;
+const FLOATING_YAWN_DURATION_MS = 2400;
+const overlayStyle = (width, borderColor) =>
+    `spacing: 0; padding: 18px; width: ${width}px; background-color: ${PANEL_COLORS.background}; border: 1px solid ${borderColor}; border-radius: 24px; box-shadow: 0 18px 48px rgba(0,0,0,0.56);`;
+const PANEL_OVERLAY_STYLES = Object.freeze({
+    expanded: Object.freeze({
+        idle: overlayStyle(EXPANDED_PANEL_WIDTH_PX, PANEL_COLORS.border),
+        recording: overlayStyle(EXPANDED_PANEL_WIDTH_PX, PANEL_COLORS.recordingBorder),
+        notification: overlayStyle(EXPANDED_PANEL_WIDTH_PX, 'rgba(88,178,255,0.62)'),
+        attention: overlayStyle(EXPANDED_PANEL_WIDTH_PX, 'rgba(245,166,35,0.68)'),
+        error: overlayStyle(EXPANDED_PANEL_WIDTH_PX, 'rgba(255,118,118,0.68)'),
+    }),
+    compact: Object.freeze({
+        idle: overlayStyle(COMPACT_PANEL_WIDTH_PX, PANEL_COLORS.border),
+        recording: overlayStyle(COMPACT_PANEL_WIDTH_PX, PANEL_COLORS.recordingBorder),
+        notification: overlayStyle(COMPACT_PANEL_WIDTH_PX, 'rgba(88,178,255,0.62)'),
+        attention: overlayStyle(COMPACT_PANEL_WIDTH_PX, 'rgba(245,166,35,0.68)'),
+        error: overlayStyle(COMPACT_PANEL_WIDTH_PX, 'rgba(255,118,118,0.68)'),
+    }),
+});
 
 export default class VoiceToTerminalExtension extends Extension {
     enable() {
@@ -90,18 +301,38 @@ export default class VoiceToTerminalExtension extends Extension {
         this._lifecycle = (this._lifecycle ?? 0) + 1;
         this._panelHovered = false;
         this._floatingHovered = false;
+        this._floatingHoverTimer = 0;
+        this._floatingHintTimer = 0;
+        this._floatingHint = null;
+        this._floatingHintOnStage = false;
+        this._pointerMotionId = 0;
+        this._floatingGazeOffset = { x: 0, y: 0 };
+        this._floatingSaccadeOffset = 0;
+        this._floatingMotionState = null;
+        this._floatingBodySequence = 0;
+        this._floatingYawnTimer = 0;
+        this._floatingReactionTimer = 0;
+        this._floatingReactionExpression = null;
+        this._floatingReactionSequence = 0;
+        this._floatingHoverExpression = null;
+        this._floatingExpression = null;
+        this._floatingYawnActive = false;
         this._floatingDrag = null;
         this._suppressFloatingClick = false;
         this._floatingClickResetTimer = 0;
         this._overlayHovered = false;
         this._overlayHideTimer = 0;
+        this._overlayVariant = null;
+        this._panelCenteringTimer = 0;
+        this._centerBox = null;
+        this._centerBoxAllocationId = 0;
+        this._activePanelView = 'dictation';
+        this._panelViewSelectedByUser = false;
         this._floatingBlinkTimer = 0;
         this._floatingBlinkRestoreTimer = 0;
         this._floatingSaccadeTimer = 0;
         this._floatingSaccadeRestoreTimer = 0;
         this._floatingEyesSquinting = false;
-        this._copilotShimmerTimer = 0;
-        this._copilotShimmerIndex = 0;
         this._robotHopSequence = 0;
         this._floatingSaccadeDirection = 1;
         this._robotMood = null;
@@ -123,6 +354,9 @@ export default class VoiceToTerminalExtension extends Extension {
             : GLib.build_filenamev([GLib.get_home_dir(), '.cache', 'voice-to-terminal', 'runtime', 'recording.level']);
         this._copilotNotificationDirectory = runtimeDir
             ? GLib.build_filenamev([runtimeDir, 'voice-to-terminal', 'copilot-notifications'])
+            : null;
+        this._copilotActiveSessionsPath = runtimeDir
+            ? GLib.build_filenamev([runtimeDir, 'voice-to-terminal', 'active-sessions.json'])
             : null;
         this._robotMoodPaths = {};
         this._robotMoodIcons = {};
@@ -200,7 +434,13 @@ export default class VoiceToTerminalExtension extends Extension {
             this._toggleControls(this._recordButton);
         });
         this._indicator.add_child(this._recordButton);
-        Main.panel.addToStatusArea(this.uuid, this._indicator, 0, 'right');
+        Main.panel.addToStatusArea(this.uuid, this._indicator, 1, 'center');
+        this._centerBox = Main.panel._centerBox;
+        this._centerBoxAllocationId = this._centerBox.connect(
+            'notify::width',
+            () => this._schedulePanelIndicatorCentering(),
+        );
+        this._schedulePanelIndicatorCentering();
         if (this._floatingRobotVisible) {
             this._createFloatingRobot();
         }
@@ -208,6 +448,7 @@ export default class VoiceToTerminalExtension extends Extension {
             this._positionFloatingRobot();
             if (this._overlay)
                 this._positionOverlay();
+            this._schedulePanelIndicatorCentering();
         });
         this._startCopilotNotificationWatcher();
         this._runBackend(['--cancel'], (success, error) => {
@@ -221,7 +462,6 @@ export default class VoiceToTerminalExtension extends Extension {
     disable() {
         this._disposed = true;
         this._lifecycle++;
-        this._stopCopilotShimmer();
         if (this._phase === 'starting' || this._phase === 'recording')
             this._runBackend(['--cancel'], () => {});
 
@@ -235,6 +475,12 @@ export default class VoiceToTerminalExtension extends Extension {
             Main.layoutManager.disconnect(this._layoutChangedId);
             this._layoutChangedId = 0;
         }
+        this._cancelPanelIndicatorCentering();
+        if (this._centerBoxAllocationId) {
+            this._centerBox.disconnect(this._centerBoxAllocationId);
+            this._centerBoxAllocationId = 0;
+        }
+        this._centerBox = null;
         this._cancelFloatingClickReset();
         this._hideOverlay();
         this._destroyFloatingRobot();
@@ -254,6 +500,7 @@ export default class VoiceToTerminalExtension extends Extension {
             height: FLOATING_BUTTON_SIZE,
             layout_manager: new Clutter.FixedLayout(),
         });
+        this._floatingRobotCanvas.set_pivot_point(0.5, 0.5);
         this._floatingRobotIcons = {
             front: new St.Icon({
                 gicon: this._robotPoseIcons.front,
@@ -289,8 +536,99 @@ export default class VoiceToTerminalExtension extends Extension {
                 style: FLOATING_EYE_STYLE,
             }),
         ];
+        this._floatingEyeGlyphs = [
+            new St.Label({
+                text: '',
+                reactive: false,
+                visible: false,
+                style: `color: ${PANEL_COLORS.accent}; font-size: 15pt; font-weight: 700;`,
+            }),
+            new St.Label({
+                text: '',
+                reactive: false,
+                visible: false,
+                style: `color: ${PANEL_COLORS.accent}; font-size: 15pt; font-weight: 700;`,
+            }),
+        ];
+        this._floatingGlasses = [
+            new St.Widget({
+                reactive: false,
+                visible: false,
+                style: FLOATING_GLASSES_STYLE,
+            }),
+            new St.Widget({
+                reactive: false,
+                visible: false,
+                style: FLOATING_GLASSES_STYLE,
+            }),
+        ];
+        this._floatingGlassesBridge = new St.Widget({
+            reactive: false,
+            visible: false,
+            style: FLOATING_GLASSES_BRIDGE_STYLE,
+        });
+        this._floatingMouth = new St.Widget({
+            reactive: false,
+            visible: false,
+        });
+        this._floatingCheeks = [
+            new St.Widget({
+                width: 7,
+                height: 4,
+                reactive: false,
+                visible: false,
+                style: `background-color: ${PANEL_COLORS.accent}; border-radius: 999px;`,
+            }),
+            new St.Widget({
+                width: 7,
+                height: 4,
+                reactive: false,
+                visible: false,
+                style: `background-color: ${PANEL_COLORS.accent}; border-radius: 999px;`,
+            }),
+        ];
+        this._floatingBrows = [
+            new St.Widget({
+                height: 2,
+                reactive: false,
+                visible: false,
+                style: `background-color: ${PANEL_COLORS.error}; border-radius: 999px;`,
+            }),
+            new St.Widget({
+                height: 2,
+                reactive: false,
+                visible: false,
+                style: `background-color: ${PANEL_COLORS.error}; border-radius: 999px;`,
+            }),
+        ];
+        this._floatingFaceAccents = [
+            new St.Label({
+                text: '',
+                reactive: false,
+                visible: false,
+                style: `color: ${PANEL_COLORS.accent}; font-size: 11pt; font-weight: 700;`,
+            }),
+            new St.Label({
+                text: '',
+                reactive: false,
+                visible: false,
+                style: `color: ${PANEL_COLORS.accent}; font-size: 11pt; font-weight: 700;`,
+            }),
+        ];
         for (const eye of this._floatingEyes)
             this._floatingRobotCanvas.add_child(eye);
+        for (const frame of this._floatingGlasses)
+            this._floatingRobotCanvas.add_child(frame);
+        this._floatingRobotCanvas.add_child(this._floatingGlassesBridge);
+        for (const cheek of this._floatingCheeks)
+            this._floatingRobotCanvas.add_child(cheek);
+        for (const brow of this._floatingBrows)
+            this._floatingRobotCanvas.add_child(brow);
+        this._floatingRobotCanvas.add_child(this._floatingMouth);
+        for (const glyph of this._floatingEyeGlyphs)
+            this._floatingRobotCanvas.add_child(glyph);
+        for (const accent of this._floatingFaceAccents)
+            this._floatingRobotCanvas.add_child(accent);
         this._floatingButton = new St.Button({
             can_focus: true,
             reactive: true,
@@ -301,15 +639,27 @@ export default class VoiceToTerminalExtension extends Extension {
             style: FLOATING_BUTTON_STYLE,
         });
         this._floatingButton.set_child(this._floatingRobotCanvas);
+        this._floatingHint = new St.Label({
+            text: 'Abrir controles',
+            reactive: false,
+            visible: false,
+            width: FLOATING_HOVER_HINT_WIDTH_PX,
+            height: FLOATING_HOVER_HINT_HEIGHT_PX,
+            style: `color: ${PANEL_COLORS.text}; background-color: ${PANEL_COLORS.raised}; border: 1px solid ${PANEL_COLORS.accentBorder}; border-radius: 15px; padding: 5px 10px; font-size: 10pt; font-weight: 500;`,
+        });
         this._setFloatingPose('front', false);
         this._floatingButton.connect('enter-event', () => {
             this._floatingHovered = true;
             this._cancelOverlayHide();
+            this._scheduleFloatingHint();
+            this._startFloatingHoverReaction();
             this._updateFloatingRobot();
             return Clutter.EVENT_PROPAGATE;
         });
         this._floatingButton.connect('leave-event', () => {
             this._floatingHovered = false;
+            this._hideFloatingHint();
+            this._stopFloatingHoverReaction();
             this._updateFloatingRobot();
             this._scheduleOverlayHide();
             return Clutter.EVENT_PROPAGATE;
@@ -317,6 +667,7 @@ export default class VoiceToTerminalExtension extends Extension {
         this._floatingButton.connect('button-press-event', (_actor, event) => {
             if (event.get_button() !== Clutter.BUTTON_PRIMARY)
                 return Clutter.EVENT_PROPAGATE;
+            this._hideFloatingHint();
             const [pointerX, pointerY] = event.get_coords();
             this._floatingDrag = {
                 pointerX,
@@ -372,13 +723,30 @@ export default class VoiceToTerminalExtension extends Extension {
             this._toggleControls(this._floatingButton);
         });
         Main.layoutManager.addTopChrome(this._floatingButton, { affectsStruts: false });
+        this._pointerMotionId = global.stage.connect('motion-event', (_stage, event) => {
+            this._updateFloatingGaze(event);
+            return Clutter.EVENT_PROPAGATE;
+        });
         this._positionFloatingRobot();
         this._updateFloatingRobot();
     }
 
     _destroyFloatingRobot() {
+        if (this._pointerMotionId) {
+            global.stage.disconnect(this._pointerMotionId);
+            this._pointerMotionId = 0;
+        }
+        this._setFloatingGazeOffset(0, 0);
+        this._floatingMotionState = null;
+        this._floatingBodySequence++;
         this._stopFloatingBlink();
         this._stopFloatingSaccades();
+        this._stopFloatingReactions();
+        this._hideFloatingHint();
+        if (this._floatingHint) {
+            this._floatingHint.destroy();
+            this._floatingHint = null;
+        }
         if (this._floatingButton) {
             Main.layoutManager.removeChrome(this._floatingButton);
             this._floatingButton.destroy();
@@ -387,8 +755,16 @@ export default class VoiceToTerminalExtension extends Extension {
             this._floatingRobotIcon = null;
             this._floatingRobotIcons = null;
             this._floatingEyes = null;
+            this._floatingEyeGlyphs = null;
+            this._floatingGlasses = null;
+            this._floatingGlassesBridge = null;
+            this._floatingMouth = null;
+            this._floatingCheeks = null;
+            this._floatingBrows = null;
+            this._floatingFaceAccents = null;
             this._floatingEyeLayout = null;
             this._floatingPose = null;
+            this._floatingExpression = null;
         }
         this._floatingHovered = false;
         this._floatingDrag = null;
@@ -506,12 +882,12 @@ export default class VoiceToTerminalExtension extends Extension {
             if (showRobot) {
                 this._createFloatingRobot();
             } else {
-                if (this._overlay && this._overlayAnchor === this._floatingButton) {
-                    this._overlayAnchor = this._recordButton;
-                    this._positionOverlay();
-                }
+                const replaceCompactPanel = this._overlay
+                    && this._overlayAnchor === this._floatingButton;
                 this._saveFloatingPosition();
                 this._destroyFloatingRobot();
+                if (replaceCompactPanel)
+                    this._showControls(this._recordButton);
             }
             if (showRobot)
                 this._saveFloatingPosition();
@@ -525,6 +901,7 @@ export default class VoiceToTerminalExtension extends Extension {
 
     _ensureFloatingBlink() {
         if (this._disposed || this._robotMood !== 'idle' || this._phase !== 'idle'
+            || this._floatingExpression !== 'contento'
             || !this._floatingEyes?.length || this._floatingBlinkTimer
             || this._floatingBlinkRestoreTimer)
             return;
@@ -535,7 +912,8 @@ export default class VoiceToTerminalExtension extends Extension {
             () => {
                 this._floatingBlinkTimer = 0;
                 if (this._disposed || this._robotMood !== 'idle'
-                    || this._phase !== 'idle' || !this._floatingEyes?.length)
+                    || this._phase !== 'idle' || this._floatingExpression !== 'contento'
+                    || !this._floatingEyes?.length)
                     return GLib.SOURCE_REMOVE;
 
                 for (const eye of this._floatingEyes) {
@@ -551,7 +929,8 @@ export default class VoiceToTerminalExtension extends Extension {
                     () => {
                         this._floatingBlinkRestoreTimer = 0;
                         if (this._disposed || this._robotMood !== 'idle'
-                            || this._phase !== 'idle' || !this._floatingEyes?.length)
+                            || this._phase !== 'idle' || this._floatingExpression !== 'contento'
+                            || !this._floatingEyes?.length)
                             return GLib.SOURCE_REMOVE;
 
                         for (const eye of this._floatingEyes) {
@@ -583,15 +962,479 @@ export default class VoiceToTerminalExtension extends Extension {
             eye.scale_y = 1;
     }
 
+    _scheduleFloatingHint() {
+        this._hideFloatingHint();
+        this._floatingHintTimer = GLib.timeout_add(
+            GLib.PRIORITY_DEFAULT,
+            FLOATING_HOVER_HINT_DELAY_MS,
+            () => {
+                this._floatingHintTimer = 0;
+                if (this._disposed || !this._floatingHovered || this._floatingDrag
+                    || !this._floatingButton || !this._floatingHint)
+                    return GLib.SOURCE_REMOVE;
+
+                const monitor = Main.layoutManager.primaryMonitor;
+                const [buttonX, buttonY] = this._floatingButton.get_transformed_position();
+                const [buttonWidth, buttonHeight] = this._floatingButton.get_transformed_size();
+                this._floatingHint.text = this._overlay
+                    ? 'Cerrar controles'
+                    : 'Abrir controles';
+                const gap = 8;
+                const right = buttonX + buttonWidth + gap;
+                const left = buttonX - FLOATING_HOVER_HINT_WIDTH_PX - gap;
+                const rightFits = right + FLOATING_HOVER_HINT_WIDTH_PX
+                    <= monitor.x + monitor.width - 8;
+                const leftFits = left >= monitor.x + 8;
+                const x = rightFits
+                    ? right
+                    : leftFits
+                        ? left
+                        : Math.max(
+                            monitor.x + 8,
+                            Math.min(
+                                buttonX,
+                                monitor.x + monitor.width - FLOATING_HOVER_HINT_WIDTH_PX - 8,
+                            ),
+                        );
+                const y = Math.max(
+                    monitor.y + 8,
+                    Math.min(
+                        buttonY + (buttonHeight - FLOATING_HOVER_HINT_HEIGHT_PX) / 2,
+                        monitor.y + monitor.height - FLOATING_HOVER_HINT_HEIGHT_PX - 8,
+                    ),
+                );
+                this._floatingHint.set_position(x, y);
+                this._floatingHint.opacity = 0;
+                if (!this._floatingHintOnStage) {
+                    Main.layoutManager.addTopChrome(this._floatingHint, {
+                        affectsStruts: false,
+                    });
+                    this._floatingHintOnStage = true;
+                }
+                this._floatingHint.visible = true;
+                this._floatingHint.ease({
+                    opacity: 255,
+                    duration: 140,
+                    mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+                });
+                return GLib.SOURCE_REMOVE;
+            },
+        );
+    }
+
+    _hideFloatingHint() {
+        if (this._floatingHintTimer) {
+            GLib.source_remove(this._floatingHintTimer);
+            this._floatingHintTimer = 0;
+        }
+        if (this._floatingHint) {
+            if (this._floatingHintOnStage) {
+                Main.layoutManager.removeChrome(this._floatingHint);
+                this._floatingHintOnStage = false;
+            }
+            this._floatingHint.remove_all_transitions();
+            this._floatingHint.visible = false;
+        }
+    }
+
+    _updateFloatingGaze(event) {
+        if (this._disposed || !this._floatingRobotVisible || !this._floatingButton
+            || this._floatingDrag)
+            return;
+
+        const [pointerX, pointerY] = event.get_coords();
+        const [robotX, robotY] = this._floatingButton.get_transformed_position();
+        const [robotWidth, robotHeight] = this._floatingButton.get_transformed_size();
+        const deltaX = pointerX - (robotX + robotWidth / 2);
+        const deltaY = pointerY - (robotY + robotHeight / 2);
+        if (Math.hypot(deltaX, deltaY) > FLOATING_GAZE_RADIUS_PX) {
+            this._setFloatingGazeOffset(0, 0);
+            return;
+        }
+
+        this._setFloatingGazeOffset(
+            deltaX / FLOATING_GAZE_RADIUS_PX * FLOATING_GAZE_MAX_X_PX,
+            deltaY / FLOATING_GAZE_RADIUS_PX * FLOATING_GAZE_MAX_Y_PX,
+        );
+    }
+
+    _setFloatingGazeOffset(x, y) {
+        const nextOffset = {
+            x: Math.max(-FLOATING_GAZE_MAX_X_PX, Math.min(FLOATING_GAZE_MAX_X_PX, x)),
+            y: Math.max(-FLOATING_GAZE_MAX_Y_PX, Math.min(FLOATING_GAZE_MAX_Y_PX, y)),
+        };
+        const currentOffset = this._floatingGazeOffset ?? { x: 0, y: 0 };
+        if (Math.abs(currentOffset.x - nextOffset.x) < 0.1
+            && Math.abs(currentOffset.y - nextOffset.y) < 0.1)
+            return;
+
+        this._floatingGazeOffset = nextOffset;
+        this._updateFloatingEyeOffsets();
+    }
+
+    _updateFloatingEyeOffsets() {
+        if (!this._floatingEyes?.length || !this._floatingEyeLayout)
+            return;
+
+        const gaze = this._floatingGazeOffset ?? { x: 0, y: 0 };
+        const saccade = this._floatingSaccadeOffset ?? 0;
+        this._floatingEyes.forEach((eye, index) => {
+            const layout = this._floatingEyeLayout[index];
+            const offsetX = gaze.x + saccade;
+            const offsetY = gaze.y;
+            eye.ease({
+                x: layout.x + offsetX,
+                y: layout.y + offsetY,
+                duration: 65,
+                mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            });
+            this._floatingEyeGlyphs[index].ease({
+                x: layout.x - 4 + offsetX,
+                y: layout.y - 6 + offsetY,
+                duration: 65,
+                mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            });
+        });
+
+        const animatePosition = (actor, x, y) => actor.ease({
+            x,
+            y,
+            duration: 65,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+        });
+        const eyeBottom = Math.max(...this._floatingEyeLayout.map(
+            eye => eye.y + eye.height,
+        ));
+        this._floatingGlasses?.forEach((frame, index) => {
+            if (!frame.visible)
+                return;
+            const eye = this._floatingEyeLayout[index];
+            animatePosition(frame, eye.x - 2 + gaze.x + saccade, eye.y - 2 + gaze.y);
+        });
+        const firstEye = this._floatingEyeLayout[0];
+        const secondEye = this._floatingEyeLayout[1];
+        const bridgeStart = firstEye.x + firstEye.width + 2;
+        const bridgeEnd = secondEye.x - 2;
+        const bridgeWidth = Math.max(2, bridgeEnd - bridgeStart);
+        if (this._floatingGlassesBridge.visible) {
+            animatePosition(
+                this._floatingGlassesBridge,
+                bridgeStart + (bridgeEnd - bridgeStart - bridgeWidth) / 2 + gaze.x + saccade,
+                firstEye.y + firstEye.height / 2 - 1 + gaze.y,
+            );
+        }
+        this._floatingCheeks?.forEach((cheek, index) => {
+            if (!cheek.visible)
+                return;
+            const eye = this._floatingEyeLayout[index];
+            animatePosition(
+                cheek,
+                (index === 0 ? eye.x - 10 : eye.x + eye.width + 4) + gaze.x + saccade,
+                eyeBottom + gaze.y + 1,
+            );
+        });
+        this._floatingBrows?.forEach((brow, index) => {
+            if (!brow.visible)
+                return;
+            const eye = this._floatingEyeLayout[index];
+            animatePosition(brow, eye.x + gaze.x + saccade, eye.y - 5 + gaze.y);
+        });
+        const faceCenter = (
+            this._floatingEyeLayout[0].x
+            + this._floatingEyeLayout[0].width / 2
+            + this._floatingEyeLayout[1].x
+            + this._floatingEyeLayout[1].width / 2
+        ) / 2;
+        this._floatingFaceAccents?.forEach((accent, index) => {
+            if (!accent.visible)
+                return;
+            const eye = this._floatingEyeLayout[index];
+            const x = this._floatingExpression === 'escucha'
+                ? (index === 0 ? Math.max(4, eye.x - 24) : eye.x + eye.width + 4)
+                : (index === 0
+                    ? Math.max(12, faceCenter - 31)
+                    : Math.min(93, faceCenter + 12));
+            const y = this._floatingExpression === 'escucha'
+                ? eye.y - 2 + gaze.y
+                : Math.max(2, eye.y - 21) + gaze.y;
+            animatePosition(accent, x + gaze.x + saccade, y);
+        });
+    }
+
+    _startFloatingHoverReaction() {
+        this._stopFloatingHoverReaction();
+        if (this._phase !== 'idle' || this._getCopilotStatus() !== 'idle')
+            return;
+
+        this._floatingHoverExpression = 'guino';
+        this._floatingHoverTimer = GLib.timeout_add(
+            GLib.PRIORITY_DEFAULT,
+            FLOATING_HOVER_ADORE_DELAY_MS,
+            () => {
+                this._floatingHoverTimer = 0;
+                if (!this._disposed && this._floatingHovered
+                    && this._phase === 'idle' && this._getCopilotStatus() === 'idle') {
+                    this._floatingHoverExpression = 'enamorado';
+                    this._updateFloatingRobot();
+                }
+                return GLib.SOURCE_REMOVE;
+            },
+        );
+    }
+
+    _stopFloatingHoverReaction() {
+        if (this._floatingHoverTimer) {
+            GLib.source_remove(this._floatingHoverTimer);
+            this._floatingHoverTimer = 0;
+        }
+        this._floatingHoverExpression = null;
+    }
+
+    _clearFloatingReaction() {
+        if (this._floatingReactionTimer) {
+            GLib.source_remove(this._floatingReactionTimer);
+            this._floatingReactionTimer = 0;
+        }
+        this._floatingReactionSequence++;
+        if (this._floatingReactionExpression === 'bostezo')
+            this._floatingYawnActive = false;
+        this._floatingReactionExpression = null;
+    }
+
+    _triggerFloatingReaction(expression, duration = FLOATING_TRANSIENT_REACTION_DURATION_MS) {
+        if (!this._floatingRobotCanvas)
+            return;
+
+        this._clearFloatingReaction();
+        const sequence = this._floatingReactionSequence;
+        this._floatingReactionExpression = expression;
+        this._floatingReactionTimer = GLib.timeout_add(
+            GLib.PRIORITY_DEFAULT,
+            duration,
+            () => {
+                this._floatingReactionTimer = 0;
+                if (this._disposed || sequence !== this._floatingReactionSequence)
+                    return GLib.SOURCE_REMOVE;
+
+                if (this._floatingReactionExpression === 'bostezo')
+                    this._floatingYawnActive = false;
+                this._floatingReactionExpression = null;
+                this._updateFloatingRobot();
+                return GLib.SOURCE_REMOVE;
+            },
+        );
+        this._updateFloatingRobot();
+    }
+
+    _stopFloatingReactions() {
+        this._stopFloatingHoverReaction();
+        if (this._floatingYawnTimer) {
+            GLib.source_remove(this._floatingYawnTimer);
+            this._floatingYawnTimer = 0;
+        }
+        this._clearFloatingReaction();
+        this._floatingYawnActive = false;
+    }
+
+    _updateFloatingYawn() {
+        const canYawn = !this._disposed && this._floatingRobotVisible
+            && Boolean(this._floatingButton) && this._phase === 'idle'
+            && this._getCopilotStatus() === 'idle'
+            && !this._overlay && !this._floatingHovered;
+        if (!canYawn) {
+            if (this._floatingYawnTimer) {
+                GLib.source_remove(this._floatingYawnTimer);
+                this._floatingYawnTimer = 0;
+            }
+            if (this._floatingReactionExpression === 'bostezo')
+                this._clearFloatingReaction();
+            return;
+        }
+        if (this._floatingYawnTimer || this._floatingYawnActive)
+            return;
+
+        this._floatingYawnTimer = GLib.timeout_add(
+            GLib.PRIORITY_DEFAULT,
+            FLOATING_IDLE_YAWN_DELAY_MS,
+            () => {
+                this._floatingYawnTimer = 0;
+                const stillIdle = !this._disposed && this._floatingRobotVisible
+                    && this._phase === 'idle' && this._getCopilotStatus() === 'idle'
+                    && !this._overlay && !this._floatingHovered;
+                if (stillIdle) {
+                    this._floatingYawnActive = true;
+                    this._triggerFloatingReaction('bostezo', FLOATING_YAWN_DURATION_MS);
+                }
+                return GLib.SOURCE_REMOVE;
+            },
+        );
+    }
+
+    _getFloatingExpression() {
+        if (this._phase === 'starting' || this._phase === 'recording')
+            return 'escucha';
+        if (this._phase === 'stopping')
+            return 'mareado';
+        if (this._phase === 'complete')
+            return 'orgulloso';
+
+        const copilotStatus = this._getCopilotStatus();
+        if (copilotStatus === 'attention')
+            return 'sorpresa';
+        if (copilotStatus === 'error')
+            return 'molesto';
+        if (copilotStatus === 'working')
+            return 'animo';
+        if (this._floatingReactionExpression)
+            return this._floatingReactionExpression;
+        if (this._floatingHoverExpression)
+            return this._floatingHoverExpression;
+        if (this._floatingYawnActive)
+            return 'bostezo';
+        return 'contento';
+    }
+
+    _applyFloatingExpression(expression, force = false) {
+        if (!this._floatingRobotCanvas || !this._floatingEyeLayout
+            || !this._floatingEyes?.length)
+            return;
+        if (!force && this._floatingExpression === expression)
+            return;
+
+        const config = FLOATING_EXPRESSION_CONFIGS[expression]
+            ?? FLOATING_EXPRESSION_CONFIGS.contento;
+        this._floatingExpression = expression;
+        if (expression === 'contento')
+            this._ensureFloatingBlink();
+        else
+            this._stopFloatingBlink();
+
+        const gaze = this._floatingGazeOffset ?? { x: 0, y: 0 };
+        const eyeOffsetX = gaze.x + (this._floatingSaccadeOffset ?? 0);
+        this._floatingEyes.forEach((eye, index) => {
+            const layout = this._floatingEyeLayout[index];
+            const glyph = this._floatingEyeGlyphs[index];
+            const eyeGlyph = config.eyeGlyph ?? '';
+            const width = config.eyeWidth ?? layout.width;
+            const height = config.eyeHeight ?? layout.height;
+            const rotation = (layout.rotation ?? 0) + (config.eyeRotation?.[index] ?? 0);
+            const scaleY = (config.eyeScaleY?.[index] ?? 1)
+                * (this._floatingEyesSquinting ? 0.68 : 1);
+            eye.visible = !eyeGlyph;
+            eye.style = config.eyeStyle ?? FLOATING_EYE_STYLE;
+            eye.set_position(layout.x + eyeOffsetX, layout.y + gaze.y);
+            eye.width = width;
+            eye.height = height;
+            eye.scale_x = layout.scaleX ?? 1;
+            eye.ease({
+                scale_y: scaleY,
+                rotation_angle_z: rotation,
+                duration: 140,
+                mode: Clutter.AnimationMode.EASE_IN_OUT_QUAD,
+            });
+            glyph.text = eyeGlyph;
+            glyph.visible = Boolean(eyeGlyph);
+            glyph.style = `color: ${config.eyeGlyphColor ?? PANEL_COLORS.accent}; font-size: 15pt; font-weight: 700;`;
+            glyph.set_position(
+                layout.x - 4 + eyeOffsetX,
+                layout.y - 6 + gaze.y,
+            );
+            glyph.width = width + 8;
+            glyph.height = height + 8;
+            glyph.rotation_angle_z = rotation;
+        });
+
+        const eyeCenters = this._floatingEyeLayout.map(eye => eye.x + eye.width / 2);
+        const faceCenter = (eyeCenters[0] + eyeCenters[1]) / 2;
+        const eyesBottom = Math.max(...this._floatingEyeLayout.map(eye => eye.y + eye.height));
+        const mouthWidth = config.mouthWidth ?? 18;
+        const mouthHeight = config.mouthHeight ?? 6;
+        this._floatingMouth.visible = Boolean(config.mouth);
+        this._floatingMouth.style = FLOATING_EXPRESSION_MOUTH_STYLES[config.mouth] ?? '';
+        this._floatingMouth.set_position(faceCenter - mouthWidth / 2, eyesBottom + 6);
+        this._floatingMouth.width = mouthWidth;
+        this._floatingMouth.height = mouthHeight;
+
+        const showGlasses = Boolean(config.glasses);
+        this._floatingGlasses.forEach((frame, index) => {
+            const eye = this._floatingEyeLayout[index];
+            frame.visible = showGlasses;
+            frame.style = FLOATING_GLASSES_STYLE;
+            frame.set_position(
+                eye.x - 2 + eyeOffsetX,
+                eye.y - 2 + gaze.y,
+            );
+            frame.width = eye.width + 4;
+            frame.height = eye.height + 4;
+        });
+        const firstEye = this._floatingEyeLayout[0];
+        const secondEye = this._floatingEyeLayout[1];
+        const bridgeStart = firstEye.x + firstEye.width + 2;
+        const bridgeEnd = secondEye.x - 2;
+        const bridgeWidth = Math.max(2, bridgeEnd - bridgeStart);
+        this._floatingGlassesBridge.visible = showGlasses;
+        this._floatingGlassesBridge.style = FLOATING_GLASSES_BRIDGE_STYLE;
+        this._floatingGlassesBridge.set_position(
+            bridgeStart + (bridgeEnd - bridgeStart - bridgeWidth) / 2 + eyeOffsetX,
+            firstEye.y + firstEye.height / 2 - 1 + gaze.y,
+        );
+        this._floatingGlassesBridge.width = bridgeWidth;
+        this._floatingGlassesBridge.height = 2;
+
+        this._floatingCheeks.forEach((cheek, index) => {
+            const eye = this._floatingEyeLayout[index];
+            cheek.visible = Boolean(config.cheeks);
+            cheek.style = `background-color: ${config.cheekColor ?? PANEL_COLORS.copilotAccent}; border-radius: 999px; box-shadow: 0 0 4px ${PANEL_COLORS.accentSoft};`;
+            cheek.opacity = config.cheekOpacity ?? 170;
+            cheek.set_position(
+                (index === 0 ? eye.x - 10 : eye.x + eye.width + 4) + eyeOffsetX,
+                eyesBottom + gaze.y + 1,
+            );
+        });
+
+        this._floatingBrows.forEach((brow, index) => {
+            const eye = this._floatingEyeLayout[index];
+            brow.visible = Boolean(config.brows);
+            brow.set_position(eye.x + eyeOffsetX, eye.y - 5 + gaze.y);
+            brow.width = eye.width;
+            brow.rotation_angle_z = config.eyeRotation?.[index] ?? 0;
+        });
+
+        this._floatingFaceAccents.forEach((accent, index) => {
+            const text = config.accents?.[index] ?? '';
+            const eye = this._floatingEyeLayout[index];
+            accent.text = text;
+            accent.visible = Boolean(text);
+            accent.style = `color: ${config.accentColor ?? PANEL_COLORS.accent}; font-size: ${config.accentFontSize ?? '11pt'}; font-weight: 700;`;
+            if (expression === 'escucha') {
+                accent.set_position(
+                    (index === 0 ? Math.max(4, eye.x - 24) : eye.x + eye.width + 4)
+                        + eyeOffsetX,
+                    eye.y - 2 + gaze.y,
+                );
+            } else {
+                accent.set_position(
+                    (index === 0
+                        ? Math.max(12, faceCenter - 31)
+                        : Math.min(93, faceCenter + 12)) + eyeOffsetX,
+                    Math.max(2, eye.y - 21) + gaze.y,
+                );
+            }
+            accent.width = 20;
+            accent.height = 20;
+        });
+    }
+
     _positionFloatingEyes(offset = 0, animate = false) {
         if (!this._floatingEyes || !this._floatingEyeLayout)
             return;
 
+        const gaze = this._floatingGazeOffset ?? { x: 0, y: 0 };
         this._floatingEyes.forEach((eye, index) => {
             const layout = this._floatingEyeLayout[index];
             const target = {
-                x: layout.x + offset,
-                y: layout.y,
+                x: layout.x + offset + gaze.x,
+                y: layout.y + gaze.y,
                 width: layout.width,
                 height: layout.height,
                 scale_x: layout.scaleX ?? 1,
@@ -617,15 +1460,8 @@ export default class VoiceToTerminalExtension extends Extension {
     _setFloatingEyeOffset(offset) {
         if (!this._floatingEyes || !this._floatingEyeLayout)
             return;
-
-        this._floatingEyes.forEach((eye, index) => {
-            const layout = this._floatingEyeLayout[index];
-            eye.ease({
-                x: layout.x + offset,
-                duration: 65,
-                mode: Clutter.AnimationMode.EASE_OUT_QUAD,
-            });
-        });
+        this._floatingSaccadeOffset = offset;
+        this._updateFloatingEyeOffsets();
     }
 
     _ensureFloatingSaccades() {
@@ -682,7 +1518,7 @@ export default class VoiceToTerminalExtension extends Extension {
 
     _setFloatingPose(pose, animate = true) {
         if (!this._floatingRobotIcons || !this._floatingRobotCanvas)
-            return;
+            return false;
 
         const shouldSquint = pose === 'threeQuarter'
             && Boolean(this._overlay)
@@ -692,20 +1528,20 @@ export default class VoiceToTerminalExtension extends Extension {
         const squintChanged = this._floatingEyesSquinting !== shouldSquint;
         this._floatingEyeLayout = pose === 'front'
             ? [
-                { x: 35, y: 52, width: 16, height: 12 },
-                { x: 61, y: 52, width: 16, height: 12 },
+                { x: 33, y: 52, width: 16, height: 12 },
+                { x: 63, y: 52, width: 16, height: 12 },
             ]
             : [
                 { x: 66, y: 54, width: 10, height: 12, rotation: -12 },
                 { x: 80, y: 51, width: 8, height: 11, scaleX: 0.7, rotation: -12 },
             ];
         if (!poseChanged && !squintChanged)
-            return;
+            return false;
 
         if (poseChanged) {
             this._floatingPose = pose;
             this._floatingRobotIcon = this._floatingRobotIcons[pose];
-            this._positionFloatingEyes(0, animate);
+            this._positionFloatingEyes(this._floatingSaccadeOffset ?? 0, animate);
             for (const [iconPose, icon] of Object.entries(this._floatingRobotIcons)) {
                 const opacity = iconPose === pose ? 255 : 0;
                 icon.remove_all_transitions();
@@ -732,6 +1568,7 @@ export default class VoiceToTerminalExtension extends Extension {
                 });
             });
         }
+        return true;
     }
 
     _setRobotMood() {
@@ -780,16 +1617,6 @@ export default class VoiceToTerminalExtension extends Extension {
         return null;
     }
 
-    _getPendingCopilotAttentionRecord() {
-        let latest = null;
-        for (const record of this._copilotStatusBySession.values()) {
-            if (record.status === 'attention'
-                && (!latest || record.createdAt > latest.createdAt))
-                latest = record;
-        }
-        return latest;
-    }
-
     _getCopilotStatus() {
         return this._getCopilotStatusRecord()?.status ?? 'idle';
     }
@@ -804,10 +1631,8 @@ export default class VoiceToTerminalExtension extends Extension {
             return null;
 
         const age = GLib.get_real_time() / 1_000_000 - notification.createdAt;
-        if (age < -5 || age > COPILOT_NOTIFICATION_DURATION_MS / 1000) {
-            this._copilotStatusBySession.delete(notification.sessionId);
+        if (age < -5 || age > COPILOT_NOTIFICATION_DURATION_MS / 1000)
             return null;
-        }
         return notification;
     }
 
@@ -819,15 +1644,17 @@ export default class VoiceToTerminalExtension extends Extension {
         let accessibleName = 'Abrir controles de dictado';
         const copilotState = this._getCopilotStatusRecord();
         const copilotStatus = copilotState?.status ?? 'idle';
-        const project = copilotState?.project ? ` en ${copilotState.project}` : '';
+        const sessionName = copilotState?.sessionName
+            ? `: ${copilotState.sessionName}`
+            : '';
         if (this._phase === 'idle' && copilotStatus === 'ready') {
             accessibleName = 'Copilot terminó; mostrar mensaje listo';
         } else if (this._phase === 'idle' && copilotStatus === 'attention') {
-            accessibleName = `Copilot necesita atención${project}`;
+            accessibleName = `Copilot necesita atención${sessionName}`;
         } else if (this._phase === 'idle' && copilotStatus === 'error') {
-            accessibleName = `Copilot informó un error${project}`;
+            accessibleName = `Copilot informó un error${sessionName}`;
         } else if (this._phase === 'idle' && copilotStatus === 'working') {
-            accessibleName = `Copilot trabajando${project}`;
+            accessibleName = `Copilot trabajando${sessionName}`;
         } else if (this._phase === 'recording') {
             accessibleName = 'Grabando; mostrar controles de dictado';
         } else if (this._phase === 'complete') {
@@ -840,19 +1667,31 @@ export default class VoiceToTerminalExtension extends Extension {
         this._floatingButton.style = FLOATING_BUTTON_STYLE;
         this._floatingButton.accessible_name = accessibleName;
         const activePose = Boolean(this._overlay);
-        this._setFloatingPose(activePose ? 'threeQuarter' : 'front');
+        const poseChanged = this._setFloatingPose(activePose ? 'threeQuarter' : 'front');
+        this._updateFloatingYawn();
+        this._applyFloatingExpression(this._getFloatingExpression(), poseChanged);
         if (this._phase !== 'idle' && this._phase !== 'complete') {
             this._floatingRobotCanvas.opacity = 255;
-            this._floatingRobotCanvas.scale_x = 1;
-            this._floatingRobotCanvas.scale_y = 1;
             this._floatingRobotCanvas.translation_y = 0;
+        }
+        const motionState = this._phase === 'idle'
+            ? this._getCopilotStatus()
+            : this._phase;
+        const previousMotionState = this._floatingMotionState;
+        this._floatingMotionState = motionState;
+        if (previousMotionState && previousMotionState !== motionState) {
+            if (motionState === 'starting' || motionState === 'working')
+                this._animateFloatingBody('activation');
+            else if (motionState === 'complete' || motionState === 'ready')
+                this._animateFloatingBody('success');
         }
     }
 
     _toggleControls(anchor = this._floatingButton) {
         if (this._disposed)
             return;
-        if ((this._phase === 'idle' || this._phase === 'complete') && this._overlay) {
+        if ((this._phase === 'idle' || this._phase === 'complete')
+            && this._overlay && this._overlayAnchor === anchor) {
             this._hideOverlay();
             return;
         }
@@ -872,6 +1711,8 @@ export default class VoiceToTerminalExtension extends Extension {
     _startRecording() {
         this._stopTimers();
         this._clearCopilotNotification();
+        this._activePanelView = 'dictation';
+        this._panelViewSelectedByUser = true;
         this._resultText = '';
         const focusedWindow = global.display.focus_window;
         this._targetWindow = focusedWindow?.get_window_type() === 0
@@ -899,7 +1740,7 @@ export default class VoiceToTerminalExtension extends Extension {
             this._phase = 'recording';
             try {
                 this._stopDotsTimer();
-                this._showOverlay();
+                this._showOverlay(this._overlayAnchor ?? this._floatingButton);
                 this._updatePanelIcon();
                 this._updateOverlay();
                 this._startMeter();
@@ -1023,6 +1864,42 @@ export default class VoiceToTerminalExtension extends Extension {
         });
     }
 
+    _animateFloatingBody(kind) {
+        const canvas = this._floatingRobotCanvas;
+        if (!canvas || !this._floatingRobotVisible || this._disposed)
+            return;
+
+        const sequence = ++this._floatingBodySequence;
+        const isCurrent = () => sequence === this._floatingBodySequence
+            && this._floatingRobotCanvas === canvas && !this._disposed;
+        canvas.ease({
+            scale_x: 1.05,
+            scale_y: 0.94,
+            duration: FLOATING_BODY_SQUASH_DURATION_MS,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            onComplete: () => {
+                if (!isCurrent())
+                    return;
+                canvas.ease({
+                    scale_x: 0.96,
+                    scale_y: kind === 'success' ? 1.1 : 1.06,
+                    duration: FLOATING_BODY_STRETCH_DURATION_MS,
+                    mode: Clutter.AnimationMode.EASE_OUT_BACK,
+                    onComplete: () => {
+                        if (!isCurrent())
+                            return;
+                        canvas.ease({
+                            scale_x: 1,
+                            scale_y: 1,
+                            duration: FLOATING_BODY_SETTLE_DURATION_MS,
+                            mode: Clutter.AnimationMode.EASE_IN_OUT_QUAD,
+                        });
+                    },
+                });
+            },
+        });
+    }
+
     _restoreTargetFocus() {
         try {
             // Activar una ventana no libera el grab modal de los ajustes rápidos.
@@ -1081,25 +1958,175 @@ export default class VoiceToTerminalExtension extends Extension {
         this._updateFloatingRobot();
     }
 
-    _showOverlay(anchor = this._floatingButton) {
-        if (this._overlay)
+    _schedulePanelIndicatorCentering() {
+        if (this._disposed || this._panelCenteringTimer)
             return;
 
+        this._panelCenteringTimer = GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+            this._panelCenteringTimer = 0;
+            if (!this._disposed)
+                this._centerPanelIndicator();
+            return GLib.SOURCE_REMOVE;
+        });
+    }
+
+    _cancelPanelIndicatorCentering() {
+        if (!this._panelCenteringTimer)
+            return;
+
+        GLib.source_remove(this._panelCenteringTimer);
+        this._panelCenteringTimer = 0;
+    }
+
+    _centerPanelIndicator() {
+        const monitor = Main.layoutManager.primaryMonitor;
+        if (!monitor || !this._centerBox || !this._recordButton)
+            return;
+
+        const [buttonX] = this._recordButton.get_transformed_position();
+        const [buttonWidth] = this._recordButton.get_transformed_size();
+        if (buttonWidth <= 0)
+            return;
+
+        const screenCenter = monitor.x + monitor.width / 2;
+        const buttonCenter = buttonX + buttonWidth / 2;
+        this._centerBox.translation_x = (this._centerBox.translation_x ?? 0)
+            + screenCenter - buttonCenter;
+    }
+
+    _showOverlay(anchor = this._floatingButton) {
+        const variant = anchor === this._floatingButton ? 'compact' : 'expanded';
+        if (this._overlay && this._overlayAnchor === anchor
+            && this._overlayVariant === variant)
+            return;
+        if (this._overlay)
+            this._destroyOverlayActor();
+
         this._overlayAnchor = anchor;
+        this._overlayVariant = variant;
+        this._panelViewSelectedByUser = false;
+        if (variant === 'expanded') {
+            this._activePanelView = this._copilotNotification
+                || this._getOpenCopilotSessions().length
+                ? 'copilot'
+                : 'dictation';
+        }
+
         const box = new St.BoxLayout({
+            vertical: variant === 'compact',
             reactive: true,
             track_hover: true,
-            style: OVERLAY_STYLE,
+            style: PANEL_OVERLAY_STYLES[variant].idle,
         });
-        const statusBox = new St.BoxLayout({
+        this._overlay = box;
+        this._panelNavigationButtons = {};
+
+        if (variant === 'expanded') {
+            const sidebar = new St.BoxLayout({
+                vertical: true,
+                style: `width: 140px; min-width: 140px; spacing: 14px; padding-right: 14px; border-right: 1px solid ${PANEL_COLORS.border};`,
+            });
+            const identity = new St.BoxLayout({
+                vertical: true,
+                style: 'spacing: 8px; padding: 2px 0 14px;',
+            });
+            const name = new St.Label({
+                text: 'Airi',
+                style: `color: ${PANEL_COLORS.text}; font-size: 18pt; font-weight: 700;`,
+            });
+            const identitySubtitle = new St.Label({
+                text: 'Asistente local',
+                style: `color: ${PANEL_COLORS.subtle}; font-size: 9pt;`,
+            });
+            identity.add_child(name);
+            identity.add_child(identitySubtitle);
+            sidebar.add_child(identity);
+
+            const navigation = new St.BoxLayout({
+                vertical: true,
+                style: 'spacing: 6px;',
+            });
+            navigation.add_child(this._createPanelNavigationButton(
+                'dictation',
+                'Dictado',
+                'audio-input-microphone-symbolic',
+            ));
+            navigation.add_child(this._createPanelNavigationButton(
+                'copilot',
+                'Copilot',
+                'view-list-symbolic',
+            ));
+            sidebar.add_child(navigation);
+
+            const sidebarSpacer = new St.Widget({ y_expand: true });
+            sidebar.add_child(sidebarSpacer);
+            const sidebarStatus = new St.BoxLayout({
+                style: 'spacing: 8px; padding-top: 12px;',
+            });
+            this._sidebarStatusDot = new St.Widget({
+                y_align: Clutter.ActorAlign.CENTER,
+                style: `background-color: ${PANEL_COLORS.accent}; width: 8px; height: 8px; border-radius: 999px;`,
+            });
+            this._sidebarStatusLabel = new St.Label({
+                text: 'Listo',
+                y_align: Clutter.ActorAlign.CENTER,
+                style: `color: ${PANEL_COLORS.muted}; font-size: 9pt;`,
+            });
+            sidebarStatus.add_child(this._sidebarStatusDot);
+            sidebarStatus.add_child(this._sidebarStatusLabel);
+            sidebar.add_child(sidebarStatus);
+            box.add_child(sidebar);
+        } else {
+            this._sidebarStatusDot = null;
+            this._sidebarStatusLabel = null;
+        }
+
+        const content = new St.BoxLayout({
             vertical: true,
             x_expand: true,
-            y_align: Clutter.ActorAlign.CENTER,
-            style: 'spacing: 3px; padding-left: 24px;',
+            y_expand: variant === 'expanded',
+            style: variant === 'expanded'
+                ? 'spacing: 12px; padding-left: 18px;'
+                : 'spacing: 12px;',
         });
-        const statusRow = new St.BoxLayout({ style: 'spacing: 10px;' });
-        this._dotsBox = new St.BoxLayout({ style: 'spacing: 5px;', visible: false });
-        const dotColors = ['#10b981', '#34d399', '#047857'];
+        if (variant === 'expanded') {
+            const panelHeader = new St.BoxLayout({
+                vertical: true,
+                style: 'spacing: 4px; padding-bottom: 4px;',
+            });
+            this._panelHeading = new St.Label({
+                text: 'Dictado',
+                style: `color: ${PANEL_COLORS.text}; font-size: 18pt; font-weight: 700;`,
+            });
+            this._panelSubtitle = new St.Label({
+                text: 'Texto local en la ventana activa',
+                style: `color: ${PANEL_COLORS.subtle}; font-size: 10pt;`,
+            });
+            panelHeader.add_child(this._panelHeading);
+            panelHeader.add_child(this._panelSubtitle);
+            content.add_child(panelHeader);
+        } else {
+            this._panelHeading = null;
+            this._panelSubtitle = null;
+        }
+
+        this._statusRow = new St.BoxLayout({
+            style: 'spacing: 10px; min-height: 32px;',
+        });
+        this._overlayLabel = new St.Label({
+            text: LABELS[this._phase] ?? '',
+            visible: true,
+            style: `color: ${PANEL_COLORS.text}; font-size: 15pt; font-weight: 700;`,
+        });
+        this._dotsBox = new St.BoxLayout({
+            style: 'spacing: 5px;',
+            visible: false,
+        });
+        const dotColors = [
+            EMERALD_PALETTE[200],
+            EMERALD_PALETTE[50],
+            EMERALD_PALETTE[400],
+        ];
         const dotSizes = [8, 12, 8];
         this._dots = dotColors.map((color, index) => {
             const dot = new St.Widget({
@@ -1109,58 +2136,114 @@ export default class VoiceToTerminalExtension extends Extension {
             this._dotsBox.add_child(dot);
             return dot;
         });
-        this._meterBox = new St.BoxLayout({ style: 'spacing: 3px;', visible: false });
+        this._meterBox = new St.BoxLayout({
+            style: 'spacing: 3px;',
+            visible: false,
+        });
         const meterHeights = [10, 16, 24, 16, 10];
-        this._meterBars = meterHeights.map(height => {
+        const meterColors = [
+            EMERALD_PALETTE[400],
+            EMERALD_PALETTE[200],
+            EMERALD_PALETTE[100],
+            EMERALD_PALETTE[200],
+            EMERALD_PALETTE[400],
+        ];
+        this._meterBars = meterHeights.map((height, index) => {
             const bar = new St.Widget({
                 y_align: Clutter.ActorAlign.CENTER,
-                style: `background-color: #10b981; width: 4px; height: ${height}px; border-radius: 999px;`,
+                style: `background-color: ${meterColors[index]}; width: 4px; height: ${height}px; border-radius: 999px;`,
             });
             this._meterBox.add_child(bar);
             return bar;
         });
-        this._overlayLabel = new St.Label({
-            text: LABELS[this._phase] ?? '',
-            visible: true,
-            style: 'color: #334155; font-size: 15pt; font-weight: 700;',
-        });
-        statusRow.add_child(this._overlayLabel);
-        statusRow.add_child(this._dotsBox);
-        statusRow.add_child(this._meterBox);
-        this._sessionStatusLabel = new St.Label({
+        this._statusRow.add_child(this._overlayLabel);
+        this._statusRow.add_child(this._dotsBox);
+        this._statusRow.add_child(this._meterBox);
+        content.add_child(this._statusRow);
+
+        if (variant === 'expanded') {
+            this._activeSessionsBox = new St.BoxLayout({
+                vertical: true,
+                style: `spacing: 10px; padding: 14px; background-color: ${PANEL_COLORS.surface}; border: 1px solid ${PANEL_COLORS.border}; border-radius: 16px;`,
+                visible: false,
+            });
+            const activeSessionsHeading = new St.Label({
+                text: 'Sesiones abiertas',
+                style: `color: ${PANEL_COLORS.text}; font-size: 13pt; font-weight: 700;`,
+            });
+            this._activeSessionsList = new St.BoxLayout({
+                vertical: true,
+                style: 'spacing: 6px;',
+            });
+            this._activeSessionsScroll = new St.ScrollView({
+                x_expand: true,
+                overlay_scrollbars: true,
+                style: `max-height: ${ACTIVE_SESSIONS_MAX_HEIGHT_PX}px;`,
+            });
+            this._activeSessionsScroll.set_policy(St.PolicyType.NEVER, St.PolicyType.AUTOMATIC);
+            this._activeSessionsScroll.add_child(this._activeSessionsList);
+            this._activeSessionsEmptyState = new St.Label({
+                text: 'No hay sesiones abiertas',
+                style: `color: ${PANEL_COLORS.subtle}; font-size: 10pt;`,
+            });
+            this._activeSessionsBox.add_child(activeSessionsHeading);
+            this._activeSessionsBox.add_child(this._activeSessionsScroll);
+            this._activeSessionsBox.add_child(this._activeSessionsEmptyState);
+            content.add_child(this._activeSessionsBox);
+        } else {
+            this._activeSessionsBox = null;
+            this._activeSessionsList = null;
+            this._activeSessionsScroll = null;
+            this._activeSessionsEmptyState = null;
+            this._compactSessionSummary = new St.Label({
+                text: '',
+                x_expand: true,
+                style: `color: ${PANEL_COLORS.muted}; font-size: 10pt;`,
+                visible: false,
+            });
+            this._compactSessionSummary.clutter_text.line_wrap = false;
+            this._compactSessionSummary.clutter_text.ellipsize = Pango.EllipsizeMode.END;
+            content.add_child(this._compactSessionSummary);
+        }
+        if (variant === 'expanded')
+            this._compactSessionSummary = null;
+
+        this._sessionTitle = new St.Label({
             text: '',
-            visible: false,
+            x_expand: true,
             y_align: Clutter.ActorAlign.CENTER,
-            style: 'max-width: 200px; color: rgba(71,85,105,0.86); font-size: 9pt;',
+            style: `color: ${PANEL_COLORS.copilotAccent}; font-size: 12pt; font-weight: 600;`,
+            visible: false,
         });
-        this._sessionStatusLabel.clutter_text.line_wrap = false;
-        this._sessionStatusLabel.clutter_text.ellipsize = Pango.EllipsizeMode.END;
+        this._sessionTitle.clutter_text.line_wrap = true;
+        content.add_child(this._sessionTitle);
+
         this._caption = new St.Label({
             text: '',
             x_expand: true,
             y_align: Clutter.ActorAlign.CENTER,
-            style: 'color: rgba(71,85,105,0.86); font-size: 11pt;',
+            style: `color: ${PANEL_COLORS.muted}; font-size: 10pt;`,
         });
         this._caption.clutter_text.line_wrap = true;
-        statusBox.add_child(statusRow);
-        statusBox.add_child(this._sessionStatusLabel);
-        statusBox.add_child(this._caption);
-        box.add_child(statusBox);
+        content.add_child(this._caption);
+
         this._actionIcon = new St.Icon({
             gicon: new Gio.FileIcon({ file: Gio.File.new_for_path(this._microphoneIconPath) }),
-            icon_size: 24,
+            icon_size: 20,
+            style: `color: ${PANEL_COLORS.background};`,
         });
         this._stopIcon = new St.Icon({
             icon_name: 'media-playback-stop-symbolic',
-            icon_size: 22,
+            icon_size: 20,
+            style: `color: ${PANEL_COLORS.background};`,
         });
         this._hideFloatingIcon = new St.Icon({
             icon_name: 'view-conceal-symbolic',
-            icon_size: 18,
+            icon_size: 16,
         });
         this._showFloatingIcon = new St.Icon({
             icon_name: 'view-reveal-symbolic',
-            icon_size: 18,
+            icon_size: 16,
         });
         this._floatingVisibilityButton = new St.Button({
             can_focus: true,
@@ -1169,7 +2252,7 @@ export default class VoiceToTerminalExtension extends Extension {
             accessible_name: this._floatingRobotVisible
                 ? 'Ocultar robot flotante'
                 : 'Mostrar robot flotante',
-            style: 'color: #047857; background-color: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.3); border-radius: 999px; padding: 11px;',
+            style: `color: ${PANEL_COLORS.muted}; background-color: ${PANEL_COLORS.raised}; border: 1px solid ${PANEL_COLORS.border}; border-radius: 999px; width: 44px; height: 44px; min-width: 44px; min-height: 44px; padding: 0;`,
         });
         this._floatingVisibilityButton.set_child(
             this._floatingRobotVisible ? this._hideFloatingIcon : this._showFloatingIcon,
@@ -1183,14 +2266,24 @@ export default class VoiceToTerminalExtension extends Extension {
             reactive: true,
             track_hover: true,
             accessible_name: ACTIONS[this._phase] ?? ACTIONS.idle,
-            style: 'background-color: #10b981; border: 1px solid rgba(4,120,87,0.24); border-radius: 999px; padding: 12px; box-shadow: 0 3px 14px rgba(16,185,129,0.24);',
+            style: `background-color: ${PANEL_COLORS.accent}; border: 1px solid ${PANEL_COLORS.accentBorder}; border-radius: 999px; width: 48px; height: 48px; min-width: 48px; min-height: 48px; padding: 0;`,
         });
         this._actionButton.set_child(this._actionIcon);
         this._displayedActionIcon = this._actionIcon;
         this._actionButton.connect('clicked', () => this._toggleRecording());
-        box.add_child(this._floatingVisibilityButton);
-        box.add_child(this._actionButton);
-        this._overlay = box;
+        this._controlFooter = new St.BoxLayout({
+            x_expand: true,
+            style: `spacing: 12px; padding-top: 12px; border-top: 1px solid ${PANEL_COLORS.border};`,
+        });
+        this._controlSpacer = new St.Widget({ x_expand: true });
+        this._controlFooter.add_child(this._floatingVisibilityButton);
+        this._controlFooter.add_child(this._controlSpacer);
+        this._controlFooter.add_child(this._actionButton);
+        if (variant === 'expanded')
+            content.add_child(new St.Widget({ y_expand: true }));
+        content.add_child(this._controlFooter);
+        box.add_child(content);
+
         this._overlay.connect('enter-event', () => {
             this._overlayHovered = true;
             this._cancelOverlayHide();
@@ -1220,10 +2313,64 @@ export default class VoiceToTerminalExtension extends Extension {
             this._animate();
     }
 
-    _showControls(anchor = this._floatingButton) {
+    _createPanelNavigationButton(view, label, iconName) {
+        const button = new St.Button({
+            can_focus: true,
+            reactive: true,
+            track_hover: true,
+            accessible_name: `Mostrar ${label}`,
+            style: 'border: 0; border-radius: 12px; min-height: 44px; padding: 0;',
+        });
+        const row = new St.BoxLayout({
+            style: 'spacing: 10px; padding: 0 10px;',
+        });
+        const icon = new St.Icon({
+            icon_name: iconName,
+            icon_size: 18,
+            style: `color: ${PANEL_COLORS.muted};`,
+        });
+        const text = new St.Label({
+            text: label,
+            x_expand: true,
+            y_align: Clutter.ActorAlign.CENTER,
+            style: `color: ${PANEL_COLORS.muted}; font-size: 10pt; font-weight: 600;`,
+        });
+        row.add_child(icon);
+        row.add_child(text);
+        let badge = null;
+        if (view === 'copilot') {
+            badge = new St.Label({
+                text: '0',
+                y_align: Clutter.ActorAlign.CENTER,
+                style: `color: ${PANEL_COLORS.muted}; background-color: ${PANEL_COLORS.raised}; border-radius: 999px; padding: 2px 7px; font-size: 8pt;`,
+                visible: false,
+            });
+            row.add_child(badge);
+        }
+        button.set_child(row);
+        button.connect('clicked', () => this._setPanelView(view));
+        this._panelNavigationButtons[view] = { button, icon, text, badge };
+        return button;
+    }
+
+    _setPanelView(view) {
+        if (this._overlayVariant !== 'expanded'
+            || !this._panelNavigationButtons?.[view]
+            || this._activePanelView === view)
+            return;
+
+        this._activePanelView = view;
+        this._panelViewSelectedByUser = true;
+        this._updateOverlay();
+    }
+
+    _showControls(anchor = this._recordButton ?? this._floatingButton) {
         this._cancelOverlayHide();
         try {
+            const wasOpen = Boolean(this._overlay);
             this._showOverlay(anchor);
+            if (!wasOpen && this._overlay)
+                this._triggerFloatingReaction('saludo');
         } catch (error) {
             this._hideOverlay();
             Main.notifyError('Airi', `No se pudo mostrar el control de dictado. ${error.message}`);
@@ -1238,18 +2385,30 @@ export default class VoiceToTerminalExtension extends Extension {
         const monitor = Main.layoutManager.primaryMonitor;
         const [anchorX, anchorY] = anchor.get_transformed_position();
         const [anchorWidth, anchorHeight] = anchor.get_transformed_size();
+        const margin = 8;
+        const maxWidth = Math.max(320, monitor.width - margin * 2);
+        const preferredWidth = this._overlayVariant === 'compact'
+            ? COMPACT_PANEL_WIDTH_PX
+            : EXPANDED_PANEL_WIDTH_PX;
+        const overlayWidthStyle = Math.min(preferredWidth, maxWidth);
+        this._overlay.style = this._overlay.style.replace(
+            /width:\s*\d+px;/,
+            `width: ${overlayWidthStyle}px;`,
+        );
         const [, overlayWidth] = this._overlay.get_preferred_width(-1);
         const [, overlayHeight] = this._overlay.get_preferred_height(overlayWidth);
-        const margin = 8;
         const minX = monitor.x + margin;
         const maxX = Math.max(minX, monitor.x + monitor.width - overlayWidth - margin);
         const floatingAnchor = anchor === this._floatingButton;
-        let x = floatingAnchor
-            ? anchorX + anchorWidth - FLOATING_CARD_OVERLAP_PX
-            : anchorX + anchorWidth + margin;
-        if (x + overlayWidth > monitor.x + monitor.width - margin) {
+        const centeredPanel = this._overlayVariant === 'expanded';
+        let x = centeredPanel
+            ? monitor.x + (monitor.width - overlayWidth) / 2
+            : floatingAnchor
+                ? anchorX + anchorWidth + FLOATING_CARD_GAP_PX
+                : anchorX + anchorWidth + margin;
+        if (!centeredPanel && x + overlayWidth > monitor.x + monitor.width - margin) {
             x = floatingAnchor
-                ? anchorX - overlayWidth + FLOATING_CARD_OVERLAP_PX
+                ? anchorX - overlayWidth - FLOATING_CARD_GAP_PX
                 : anchorX - overlayWidth - margin;
         }
         x = Math.min(Math.max(x, minX), maxX);
@@ -1298,51 +2457,43 @@ export default class VoiceToTerminalExtension extends Extension {
         }
     }
 
-    _applyCopilotShimmerColor() {
-        if (!this._overlayLabel)
-            return;
-
-        const color = COPILOT_SHIMMER_COLORS[this._copilotShimmerIndex];
-        this._overlayLabel.style = `color: ${color}; font-size: 15pt; font-weight: 700; transition-duration: ${COPILOT_SHIMMER_STEP_MS}ms;`;
+    _getOpenCopilotSessions() {
+        return [...this._copilotStatusBySession.values()]
+            .filter(record => OPEN_COPILOT_SESSION_STATUSES.includes(record.status))
+            .sort((left, right) => {
+                const priorityDifference = COPILOT_SESSION_STATUS_PRIORITY[left.status]
+                    - COPILOT_SESSION_STATUS_PRIORITY[right.status];
+                return priorityDifference || right.createdAt - left.createdAt;
+            });
     }
 
-    _updateCopilotShimmer(active) {
-        if (!active || !this._overlayLabel) {
-            this._stopCopilotShimmer();
-            return;
-        }
-        if (this._copilotShimmerTimer) {
-            this._applyCopilotShimmerColor();
-            return;
-        }
-
-        this._copilotShimmerIndex = 0;
-        this._applyCopilotShimmerColor();
-        this._copilotShimmerTimer = GLib.timeout_add(
-            GLib.PRIORITY_DEFAULT,
-            COPILOT_SHIMMER_STEP_MS,
-            () => {
-                if (this._disposed || !this._overlay || !this._overlayLabel
-                    || this._phase !== 'idle' || this._copilotNotification
-                    || !this._getCopilotStatusRecord('working')) {
-                    this._copilotShimmerTimer = 0;
-                    return GLib.SOURCE_REMOVE;
-                }
-
-                this._copilotShimmerIndex = (this._copilotShimmerIndex + 1)
-                    % COPILOT_SHIMMER_COLORS.length;
-                this._applyCopilotShimmerColor();
-                return GLib.SOURCE_CONTINUE;
-            },
-        );
-    }
-
-    _stopCopilotShimmer() {
-        if (this._copilotShimmerTimer) {
-            GLib.source_remove(this._copilotShimmerTimer);
-            this._copilotShimmerTimer = 0;
-        }
-        this._copilotShimmerIndex = 0;
+    _createActiveCopilotSessionRow(record) {
+        const row = new St.BoxLayout({
+            style: `spacing: 10px; padding: 9px 10px; background-color: ${PANEL_COLORS.raised}; border: 1px solid ${PANEL_COLORS.border}; border-radius: 14px;`,
+        });
+        const sessionName = new St.Label({
+            text: record.sessionName || 'Sesión sin título',
+            x_expand: true,
+            y_align: Clutter.ActorAlign.CENTER,
+            style: `max-width: 270px; color: ${PANEL_COLORS.text}; font-size: 10pt; font-weight: 500;`,
+        });
+        sessionName.clutter_text.line_wrap = false;
+        sessionName.clutter_text.ellipsize = Pango.EllipsizeMode.END;
+        const statusStyle = record.status === 'attention'
+            ? `color: ${PANEL_COLORS.attention}; background-color: rgba(245,166,35,0.14); border: 1px solid rgba(245,166,35,0.32);`
+            : record.status === 'error'
+                ? `color: ${PANEL_COLORS.error}; background-color: rgba(255,118,118,0.12); border: 1px solid rgba(255,118,118,0.3);`
+                : record.status === 'idle'
+                    ? `color: ${PANEL_COLORS.muted}; background-color: ${PANEL_COLORS.raised}; border: 1px solid ${PANEL_COLORS.border};`
+                    : `color: ${PANEL_COLORS.copilotAccent}; background-color: ${PANEL_COLORS.copilotSurface}; border: 1px solid ${PANEL_COLORS.copilotBorder};`;
+        const statusTag = new St.Label({
+            text: COPILOT_SESSION_STATUS_LABELS[record.status] ?? 'Estado desconocido',
+            y_align: Clutter.ActorAlign.CENTER,
+            style: `${statusStyle} border-radius: 999px; padding: 4px 8px; font-size: 8pt; font-weight: 500;`,
+        });
+        row.add_child(sessionName);
+        row.add_child(statusTag);
+        return row;
     }
 
     _updateOverlay() {
@@ -1352,53 +2503,125 @@ export default class VoiceToTerminalExtension extends Extension {
 
         const copilotNotification = this._phase === 'idle' ? this._copilotNotification : null;
         const status = this._phase === 'stopping' ? 'transcribing' : this._phase;
-        const workingSession = this._getCopilotStatusRecord('working');
         const showControls = !copilotNotification;
         const showCaption = this._phase === 'complete' || Boolean(copilotNotification);
-        const copilotWorkingVisible = this._phase === 'idle'
-            && !copilotNotification
-            && Boolean(workingSession);
+        const activeSessions = this._getOpenCopilotSessions();
+        const firstActiveSession = activeSessions[0];
+        const expanded = this._overlayVariant === 'expanded';
+        const activeSessionColor = firstActiveSession?.status === 'attention'
+            ? PANEL_COLORS.attention
+            : firstActiveSession?.status === 'error'
+                ? PANEL_COLORS.error
+                : firstActiveSession?.status === 'idle'
+                    ? PANEL_COLORS.subtle
+                    : PANEL_COLORS.copilotAccent;
+        if (expanded && !this._panelViewSelectedByUser && this._phase === 'idle'
+            && !copilotNotification && activeSessions.length > 0)
+            this._activePanelView = 'copilot';
+        const showingCopilotView = expanded && this._activePanelView === 'copilot';
+        const compactSessionStatus = this._overlayVariant === 'compact'
+            && this._phase === 'idle' && firstActiveSession;
+        this._statusRow.visible = !showingCopilotView || Boolean(copilotNotification);
         this._overlayLabel.text = copilotNotification
             ? copilotNotification.title
-            : copilotWorkingVisible
-                ? COPILOT_STATUS_LABELS.working
+            : compactSessionStatus
+                ? COPILOT_OVERVIEW_STATUS_LABELS[firstActiveSession.status]
                 : LABELS[status] ?? 'Listo para dictar';
         this._overlayLabel.visible = true;
-        const visibleCopilotStatus = copilotNotification?.status ?? (workingSession ? 'working' : null);
-        const statusColor = visibleCopilotStatus
-            ? COPILOT_NOTIFICATION_COLORS[visibleCopilotStatus] ?? '#059669'
+        const statusColor = copilotNotification
+            ? COPILOT_NOTIFICATION_COLORS[copilotNotification.status] ?? PANEL_COLORS.accent
             : status === 'recording'
-            ? '#047857'
-            : status === 'transcribing' ? '#0f766e'
-                : status === 'complete' ? '#059669' : '#334155';
+                ? PANEL_COLORS.accent
+                : status === 'transcribing' ? PANEL_COLORS.blue
+                    : status === 'complete' ? PANEL_COLORS.accent
+                        : compactSessionStatus
+                            ? activeSessionColor
+                            : PANEL_COLORS.text;
         this._overlayLabel.style = `color: ${statusColor}; font-size: 15pt; font-weight: 700;`;
-        const workingDetails = workingSession
-            ? [workingSession.project, workingSession.taskSummary].filter(Boolean).join(' · ')
-            : '';
-        this._sessionStatusLabel.text = workingDetails;
-        this._sessionStatusLabel.visible = Boolean(workingDetails);
-        this._updateCopilotShimmer(copilotWorkingVisible);
-        let notificationMessage = copilotNotification?.message ?? '';
-        if (copilotNotification?.status === 'attention') {
-            const taskContext = copilotNotification.taskSummary
-                ? ` · ${copilotNotification.taskSummary}`
-                : '';
-            notificationMessage = [
-                `Proyecto: ${copilotNotification.project || 'tu proyecto'}${taskContext}`,
-                copilotNotification.message,
-            ].filter(Boolean).join('\n');
-        } else if (copilotNotification?.status === 'error' && copilotNotification.project) {
-            notificationMessage = `Proyecto: ${copilotNotification.project}\n${notificationMessage}`;
+        if (this._panelHeading) {
+            this._panelHeading.text = showingCopilotView ? 'Copilot' : 'Dictado';
+            this._panelSubtitle.text = showingCopilotView
+                ? activeSessions.length
+                    ? `${activeSessions.length} sesiones abiertas`
+                    : 'Tus sesiones abiertas aparecerán acá'
+                : 'Texto local en la ventana activa';
         }
+        const sidebarStatus = copilotNotification
+            ? copilotNotification.status === 'attention'
+                ? 'Necesita respuesta'
+                : copilotNotification.status === 'error' ? 'Con un error' : 'Aviso de Copilot'
+            : this._phase === 'recording'
+                ? 'Grabando'
+                : this._phase === 'starting' || this._phase === 'stopping'
+                    ? 'Procesando'
+                    : firstActiveSession
+                        ? COPILOT_OVERVIEW_STATUS_LABELS[firstActiveSession.status]
+                        : 'Listo';
+        if (this._sidebarStatusLabel)
+            this._sidebarStatusLabel.text = sidebarStatus;
+        const sidebarStatusColor = copilotNotification
+            ? COPILOT_NOTIFICATION_COLORS[copilotNotification.status] ?? PANEL_COLORS.accent
+            : this._phase === 'recording' ? PANEL_COLORS.accent
+                : this._phase === 'starting' || this._phase === 'stopping'
+                    ? PANEL_COLORS.blue
+                    : firstActiveSession ? activeSessionColor : PANEL_COLORS.accent;
+        if (this._sidebarStatusDot)
+            this._sidebarStatusDot.style = `background-color: ${sidebarStatusColor}; width: 8px; height: 8px; border-radius: 999px;`;
+
+        for (const [view, navigation] of Object.entries(this._panelNavigationButtons ?? {})) {
+            const selected = view === this._activePanelView;
+            const selectedColor = view === 'copilot'
+                ? PANEL_COLORS.copilotAccent
+                : PANEL_COLORS.accent;
+            const selectedSurface = view === 'copilot'
+                ? PANEL_COLORS.copilotSoft
+                : PANEL_COLORS.accentSoft;
+            navigation.button.style = `background-color: ${selected ? selectedSurface : 'transparent'}; border: 0; border-radius: 12px; min-height: 44px; padding: 0;`;
+            navigation.icon.style = `color: ${selected ? selectedColor : PANEL_COLORS.muted};`;
+            navigation.text.style = `color: ${selected ? selectedColor : PANEL_COLORS.muted}; font-size: 10pt; font-weight: 600;`;
+            navigation.button.accessible_name = `${selected ? 'Vista actual' : 'Mostrar'} ${view === 'copilot' ? 'Copilot' : 'Dictado'}`;
+            if (navigation.badge) {
+                navigation.badge.text = `${activeSessions.length}`;
+                navigation.badge.visible = activeSessions.length > 0;
+                navigation.badge.style = `color: ${activeSessionColor}; background-color: ${PANEL_COLORS.raised}; border-radius: 999px; padding: 2px 7px; font-size: 8pt;`;
+            }
+        }
+        if (this._activeSessionsBox) {
+            this._activeSessionsBox.visible = showingCopilotView && !copilotNotification;
+            this._activeSessionsList.remove_all_children();
+            for (const session of activeSessions)
+                this._activeSessionsList.add_child(this._createActiveCopilotSessionRow(session));
+            this._activeSessionsScroll.visible = activeSessions.length > 0;
+            this._activeSessionsEmptyState.visible = activeSessions.length === 0;
+        }
+        if (this._compactSessionSummary) {
+            const summary = activeSessions.length === 1
+                ? '1 sesión abierta de Copilot'
+                : `${activeSessions.length} sesiones abiertas de Copilot`;
+            this._compactSessionSummary.text = summary;
+            this._compactSessionSummary.visible = activeSessions.length > 0
+                && this._phase === 'idle' && !copilotNotification;
+        }
+        const notificationMessage = copilotNotification?.message ?? '';
+        const sessionTitle = copilotNotification?.status === 'ready'
+            ? copilotNotification.sessionName || copilotNotification.project
+            : '';
+        const messageLines = notificationMessage.split('\n');
+        const messageStartsWithSessionTitle = Boolean(sessionTitle)
+            && messageLines[0] === sessionTitle;
+        this._sessionTitle.text = sessionTitle;
+        this._sessionTitle.visible = Boolean(sessionTitle);
         this._caption.text = copilotNotification
-            ? notificationMessage
+            ? messageStartsWithSessionTitle
+                ? messageLines.slice(1).join('\n')
+                : notificationMessage
             : this._phase === 'complete' ? this._resultPreview() : '';
-        this._caption.visible = showCaption;
-        this._caption.style = this._phase === 'complete' || copilotNotification
-            ? 'color: rgba(15,23,42,0.88); font-size: 11pt;'
-            : 'color: rgba(71,85,105,0.86); font-size: 11pt;';
-        this._floatingVisibilityButton.visible = showControls;
-        this._actionButton.visible = showControls;
+        this._caption.visible = showCaption
+            && (this._overlayVariant === 'compact'
+                || this._activePanelView === 'dictation'
+                || Boolean(copilotNotification));
+        this._caption.style = `color: ${PANEL_COLORS.muted}; font-size: 10pt;`;
+        this._controlFooter.visible = showControls;
         this._dotsBox.visible = this._phase === 'starting' || this._phase === 'stopping';
         this._meterBox.visible = this._phase === 'recording';
         const visibilityIcon = this._floatingRobotVisible
@@ -1420,16 +2643,22 @@ export default class VoiceToTerminalExtension extends Extension {
         this._actionButton.reactive = this._phase === 'idle'
             || this._phase === 'recording'
             || this._phase === 'complete';
-        this._overlay.style = copilotNotification
-            ? NOTIFICATION_OVERLAY_STYLE
-            : this._phase === 'idle'
-                ? IDLE_OVERLAY_STYLE
-                : this._phase === 'recording' ? RECORDING_OVERLAY_STYLE : OVERLAY_STYLE;
-        this._actionButton.style = this._phase === 'recording'
-            ? 'background-color: #047857; border: 1px solid rgba(5,150,105,0.5); border-radius: 999px; padding: 12px; box-shadow: 0 3px 14px rgba(16,185,129,0.24);'
-            : this._phase === 'starting' || this._phase === 'stopping'
-                ? 'background-color: #d1fae5; border: 1px solid rgba(16,185,129,0.24); border-radius: 999px; padding: 12px;'
-                : 'background-color: #10b981; border: 1px solid rgba(4,120,87,0.24); border-radius: 999px; padding: 12px; box-shadow: 0 3px 14px rgba(16,185,129,0.24);';
+        const overlayState = copilotNotification
+            ? copilotNotification.status === 'attention'
+                ? 'attention'
+                : copilotNotification.status === 'error' ? 'error' : 'notification'
+            : this._phase === 'recording' ? 'recording' : 'idle';
+        const monitorWidth = Main.layoutManager.primaryMonitor?.width
+            ?? EXPANDED_PANEL_WIDTH_PX;
+        const preferredWidth = this._overlayVariant === 'compact'
+            ? COMPACT_PANEL_WIDTH_PX
+            : EXPANDED_PANEL_WIDTH_PX;
+        const overlayWidth = Math.min(preferredWidth, Math.max(320, monitorWidth - 16));
+        this._overlay.style = PANEL_OVERLAY_STYLES[this._overlayVariant][overlayState]
+            .replace(/width:\s*\d+px;/, `width: ${overlayWidth}px;`);
+        this._actionButton.style = this._phase === 'starting' || this._phase === 'stopping'
+            ? `background-color: ${PANEL_COLORS.surface}; border: 1px solid ${PANEL_COLORS.border}; border-radius: 999px; width: 48px; height: 48px; min-width: 48px; min-height: 48px; padding: 0;`
+            : `background-color: ${PANEL_COLORS.accent}; border: 1px solid ${PANEL_COLORS.accentBorder}; border-radius: 999px; width: 48px; height: 48px; min-width: 48px; min-height: 48px; padding: 0;`;
 
         if (this._phase === 'idle' || this._phase === 'starting' || this._phase === 'complete') {
             this._dots.forEach(dot => {
@@ -1525,6 +2754,7 @@ export default class VoiceToTerminalExtension extends Extension {
         if (this._disposed || this._phase !== 'idle' || !this._copilotNotificationDirectory)
             return;
 
+        this._syncCopilotActiveSessions();
         const directory = Gio.File.new_for_path(this._copilotNotificationDirectory);
         if (!directory.query_exists(null))
             return;
@@ -1564,6 +2794,80 @@ export default class VoiceToTerminalExtension extends Extension {
         }
     }
 
+    _syncCopilotActiveSessions() {
+        if (!this._copilotActiveSessionsPath)
+            return;
+
+        const file = Gio.File.new_for_path(this._copilotActiveSessionsPath);
+        if (!file.query_exists(null))
+            return;
+
+        try {
+            const [success, contents] = file.load_contents(null);
+            if (!success)
+                throw new Error('No se pudo leer el estado de las sesiones activas.');
+            const state = JSON.parse(new TextDecoder().decode(contents));
+            if (!state || !Array.isArray(state.sessions))
+                throw new Error('El estado de las sesiones activas tiene un formato inválido.');
+
+            const activeSessions = new Map();
+            for (const session of state.sessions) {
+                if (!session || typeof session.sessionId !== 'string' || !session.sessionId
+                    || !OPEN_COPILOT_SESSION_STATUSES.includes(session.status)
+                    || (session.sessionName !== undefined
+                        && typeof session.sessionName !== 'string')
+                    || !Number.isFinite(session.createdAt))
+                    throw new Error('El estado de las sesiones activas tiene un formato inválido.');
+                activeSessions.set(session.sessionId, {
+                    sessionId: session.sessionId,
+                    status: session.status,
+                    title: session.status === 'attention'
+                        ? 'Copilot necesita una respuesta'
+                        : session.status === 'error'
+                            ? 'Copilot encontró un error'
+                            : session.status === 'ready'
+                                ? 'Copilot terminó'
+                                : 'Copilot trabajando',
+                    message: '',
+                    project: '',
+                    sessionName: session.sessionName?.trim().slice(0, 120) ?? '',
+                    taskSummary: '',
+                    createdAt: session.createdAt,
+                });
+            }
+
+            let changed = false;
+            for (const [sessionId, record] of this._copilotStatusBySession) {
+                if (OPEN_COPILOT_SESSION_STATUSES.includes(record.status)
+                    && !activeSessions.has(sessionId)) {
+                    this._copilotStatusBySession.delete(sessionId);
+                    changed = true;
+                }
+            }
+            for (const [sessionId, record] of activeSessions) {
+                const current = this._copilotStatusBySession.get(sessionId);
+                if (!current || current.status !== record.status
+                    || current.sessionName !== record.sessionName
+                    || current.createdAt !== record.createdAt) {
+                    this._copilotStatusBySession.set(sessionId, {
+                        ...current,
+                        ...record,
+                    });
+                    changed = true;
+                }
+            }
+
+            if (changed) {
+                this._updateFloatingRobot();
+                if (this._overlay && !this._copilotNotification)
+                    this._updateOverlay();
+            }
+            this._copilotNotificationErrorNotified = false;
+        } catch (error) {
+            this._reportCopilotNotificationError(error);
+        }
+    }
+
     _consumeCopilotNotification(filename) {
         const path = GLib.build_filenamev([this._copilotNotificationDirectory, filename]);
         const file = Gio.File.new_for_path(path);
@@ -1579,6 +2883,7 @@ export default class VoiceToTerminalExtension extends Extension {
                 || typeof event.message !== 'string'
                 || (event.project !== undefined && typeof event.project !== 'string')
                 || (event.taskSummary !== undefined && typeof event.taskSummary !== 'string')
+                || (event.sessionName !== undefined && typeof event.sessionName !== 'string')
                 || (status !== 'working' && status !== 'idle' && !event.message.trim())
                 || !Number.isFinite(event.createdAt))
                 throw new Error('El aviso tiene un formato inválido.');
@@ -1594,6 +2899,7 @@ export default class VoiceToTerminalExtension extends Extension {
                 status,
                 project: event.project?.trim() ?? '',
                 taskSummary: event.taskSummary?.trim().slice(0, 80) ?? '',
+                sessionName: event.sessionName?.trim().slice(0, 120) ?? '',
                 message: event.message.trim(),
             };
             file.delete(null);
@@ -1624,39 +2930,45 @@ export default class VoiceToTerminalExtension extends Extension {
             title: event.title,
             message: event.message,
             project: event.project,
+            sessionName: event.sessionName || previous?.sessionName || '',
             taskSummary: event.taskSummary || previous?.taskSummary || '',
             createdAt: event.createdAt,
         };
-        if (status === 'idle') {
+        if (status === 'idle')
             this._copilotStatusBySession.delete(sessionId);
-        } else {
+        else
             this._copilotStatusBySession.set(sessionId, record);
-        }
 
-        const pendingAttention = this._getPendingCopilotAttentionRecord();
-        if (pendingAttention) {
-            if (this._copilotNotification?.sessionId !== pendingAttention.sessionId
-                || this._copilotNotification.status !== 'attention') {
-                this._showCopilotNotification(pendingAttention);
-            } else {
-                this._updateOverlay();
-            }
+        if (status === 'ready')
+            this._triggerFloatingReaction('festejo');
+
+        if (status === 'attention') {
+            this._showCopilotNotification(record);
             this._updateFloatingRobot();
             return;
         }
 
         if (status === 'working' || status === 'idle') {
-            if (this._copilotNotification?.sessionId === sessionId
-                && (status === 'working' || this._copilotNotification.status === 'attention')) {
+            if (this._copilotNotification?.sessionId === sessionId) {
                 this._clearCopilotNotification();
                 const nextNotification = this._getRecentCopilotNotification();
                 if (nextNotification)
                     this._showCopilotNotification(nextNotification, false);
-                else if (this._overlay && this._phase === 'idle')
-                    this._hideOverlay();
+                else if (this._overlay && this._phase === 'idle') {
+                    if (this._getOpenCopilotSessions().length)
+                        this._updateOverlay();
+                    else
+                        this._hideOverlay();
+                }
             }
             if (this._overlay)
                 this._updateOverlay();
+            this._updateFloatingRobot();
+            return;
+        }
+
+        if (this._copilotNotification?.status === 'attention') {
+            this._updateOverlay();
             this._updateFloatingRobot();
             return;
         }
@@ -1667,9 +2979,14 @@ export default class VoiceToTerminalExtension extends Extension {
     _showCopilotNotification(notification, playSound = true) {
         this._cancelCopilotDismiss();
         this._copilotNotification = notification;
+        this._activePanelView = 'copilot';
+        this._panelViewSelectedByUser = false;
         this._cancelOverlayHide();
-        if (!this._overlay)
-            this._showOverlay(this._floatingButton ?? this._recordButton);
+        const anchor = this._floatingRobotVisible && this._floatingButton
+            ? this._floatingButton
+            : this._recordButton ?? this._floatingButton;
+        if (!this._overlay || this._overlayAnchor !== anchor)
+            this._showOverlay(anchor);
         else {
             this._updateOverlay();
             this._positionOverlay();
@@ -1716,7 +3033,6 @@ export default class VoiceToTerminalExtension extends Extension {
 
     _scheduleCopilotDismiss() {
         if (!this._copilotNotification || this._phase !== 'idle'
-            || this._copilotNotification.status === 'attention'
             || !this._overlay || this._overlayHovered)
             return;
 
@@ -1860,30 +3176,34 @@ export default class VoiceToTerminalExtension extends Extension {
         }
     }
 
-    _hideOverlay() {
-        this._stopCopilotShimmer();
-        this._stopTimers();
-        this._cancelOverlayHide();
-        this._clearCopilotNotification();
+    _destroyOverlayActor() {
         if (!this._overlay)
             return;
-
         Main.layoutManager.removeChrome(this._overlay);
         this._overlay.destroy();
         this._overlay = null;
         this._overlayAnchor = null;
-        if (this._phase === 'complete') {
-            this._phase = 'idle';
-            this._resultText = '';
-        }
-        this._updateFloatingRobot();
+        this._overlayVariant = null;
         this._overlayLabel = null;
-        this._sessionStatusLabel = null;
+        this._statusRow = null;
+        this._panelHeading = null;
+        this._panelSubtitle = null;
+        this._panelNavigationButtons = {};
+        this._sidebarStatusDot = null;
+        this._sidebarStatusLabel = null;
+        this._activeSessionsBox = null;
+        this._activeSessionsScroll = null;
+        this._activeSessionsList = null;
+        this._activeSessionsEmptyState = null;
+        this._compactSessionSummary = null;
+        this._sessionTitle = null;
         this._caption = null;
         this._dotsBox = null;
         this._meterBox = null;
         this._meterBars = [];
         this._floatingVisibilityButton = null;
+        this._controlFooter = null;
+        this._controlSpacer = null;
         this._hideFloatingIcon = null;
         this._showFloatingIcon = null;
         this._displayedVisibilityIcon = null;
@@ -1893,5 +3213,20 @@ export default class VoiceToTerminalExtension extends Extension {
         this._displayedActionIcon = null;
         this._dots = [];
         this._overlayHovered = false;
+    }
+
+    _hideOverlay() {
+        this._stopTimers();
+        this._cancelOverlayHide();
+        this._clearCopilotNotification();
+        if (!this._overlay)
+            return;
+
+        this._destroyOverlayActor();
+        if (this._phase === 'complete') {
+            this._phase = 'idle';
+            this._resultText = '';
+        }
+        this._updateFloatingRobot();
     }
 }
