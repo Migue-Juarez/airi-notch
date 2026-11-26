@@ -10,6 +10,8 @@ XDO="$APP_HOME/toolchain/usr/bin/xdotool"
 MULTIARCH="$(cc -print-multiarch 2>/dev/null || true)"
 LOCAL_LIB="$APP_HOME/toolchain/usr/lib/$MULTIARCH"
 AUDIO_METER="$APP_HOME/audio_meter.py"
+TEXT_PROCESSOR="$APP_HOME/text_processing.py"
+DICTATION_RULES="${XDG_CONFIG_HOME:-$HOME/.config}/voice-to-terminal/dictation-rules.json"
 
 notify() {
     [[ -z "${VOICE_TO_TERMINAL_QUIET:-}" ]] || return 0
@@ -38,6 +40,7 @@ fi
 if [[ "$MODE" != "--cancel" ]]; then
     [[ -x "$WHISPER_BIN" ]] || fail "No se encontró whisper-cli. Ejecuta install.sh."
     [[ -r "$MODEL" ]] || fail "No se encontró el modelo local. Ejecuta install.sh."
+    [[ -r "$TEXT_PROCESSOR" ]] || fail "No se encontró el procesador de reglas de dictado."
     [[ -x "$XDO" ]] || fail "No se encontró xdotool local. Ejecuta install.sh."
     [[ -n "$MULTIARCH" && -d "$LOCAL_LIB" ]] || fail "No se encontró la biblioteca local de xdotool."
 fi
@@ -202,7 +205,9 @@ PY
     if ! raw_text="$("$WHISPER_BIN" --model "$MODEL" --file "$AUDIO_FILE" --language es --no-timestamps --no-prints --no-gpu --threads 4 2>/dev/null)"; then
         fail "Falló la transcripción local."
     fi
-    text="$(printf '%s' "$raw_text" | python3 -c 'import sys; print(" ".join(sys.stdin.read().split()), end="")')"
+    if ! text="$(printf '%s' "$raw_text" | python3 "$TEXT_PROCESSOR" "$DICTATION_RULES")"; then
+        fail "No se pudo aplicar la configuración de dictado."
+    fi
     [[ -n "$text" ]] || fail "No se reconoció voz en la grabación."
 
     [[ -r "$WINDOW_FILE" ]] || fail "No se encontró la ventana enfocada al iniciar el dictado."

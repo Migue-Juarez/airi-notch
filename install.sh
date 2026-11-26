@@ -32,6 +32,7 @@ die() {
 [[ "$(uname -m)" == x86_64 ]] || die "La extracción local de dependencias está preparada para x86_64."
 [[ -f "$PROJECT_ENTRYPOINT" ]] || die "No se encontró el comando del proyecto: $PROJECT_ENTRYPOINT."
 [[ -f "$PROJECT_ROOT/audio_meter.py" ]] || die "No se encontró el medidor de audio del proyecto."
+[[ -f "$PROJECT_ROOT/text_processing.py" ]] || die "No se encontró el procesador de reglas de dictado."
 
 for command_name in apt-get dpkg-deb git curl sha1sum cc make arecord notify-send python3 gnome-extensions install gsettings; do
     command -v "$command_name" >/dev/null 2>&1 || die "Falta la herramienta requerida: $command_name."
@@ -112,6 +113,9 @@ if [[ "$PROJECT_ENTRYPOINT" != "$ENTRYPOINT" ]]; then
 fi
 if [[ "$PROJECT_ROOT/audio_meter.py" != "$APP_HOME/audio_meter.py" ]]; then
     install -m 755 "$PROJECT_ROOT/audio_meter.py" "$APP_HOME/audio_meter.py"
+fi
+if [[ "$PROJECT_ROOT/text_processing.py" != "$APP_HOME/text_processing.py" ]]; then
+    install -m 755 "$PROJECT_ROOT/text_processing.py" "$APP_HOME/text_processing.py"
 fi
 chmod 755 "$ENTRYPOINT"
 ln -sfn "$ENTRYPOINT" "$LINK"

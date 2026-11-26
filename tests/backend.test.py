@@ -29,6 +29,7 @@ class BackendTest(unittest.TestCase):
         self.xdo_calls = root / "xdotool-calls.txt"
         self.env = dict(os.environ, XDG_DATA_HOME=str(data),
                         XDG_RUNTIME_DIR=str(self.state.parent),
+                        XDG_CONFIG_HOME=str(root / "config"),
                         XDG_SESSION_TYPE="x11", VOICE_TO_TERMINAL_QUIET="1",
                         PATH=f"{bins}:{os.environ['PATH']}",
                         TEST_TYPED=str(self.typed), TEST_WINDOW="4242",
@@ -71,6 +72,7 @@ int main(int argc, char **argv) {
         self.script(app / "whisper.cpp/build/bin/whisper-cli",
                     "printf 'dictado local de prueba\\n'\n")
         shutil.copy2(APP / "audio_meter.py", app / "audio_meter.py")
+        shutil.copy2(APP / "text_processing.py", app / "text_processing.py")
         self.script(app / "toolchain/usr/bin/xdotool", """
 case "$1" in
     getactivewindow)
@@ -151,6 +153,21 @@ esac
         stop = self.run_backend("--stop")
         self.assertEqual(stop.returncode, 0)
         self.assertEqual(stop.stdout.strip(), "dictado local de prueba")
+
+    def test_configured_replacements_are_applied_before_typing(self):
+        config = Path(self.env["XDG_CONFIG_HOME"]) / "voice-to-terminal" / "dictation-rules.json"
+        config.parent.mkdir(parents=True)
+        config.write_text(
+            '{"replacements":[{"phrase":"eiri","replacement":"Airi"}]}',
+            encoding="utf-8",
+        )
+        self.script(self.app / "whisper.cpp/build/bin/whisper-cli",
+                    "printf 'eiri\\n'\n")
+
+        self.assertEqual(self.run_backend("--start").returncode, 0)
+        stop = self.run_backend("--stop")
+        self.assertEqual(stop.returncode, 0, stop.stderr)
+        self.assertEqual(self.typed.read_text().splitlines()[-1], "Airi")
 
     @unittest.skipUnless(os.environ.get("VOICE_TO_TERMINAL_GUI_TEST") == "1",
                          "Requires a local X11 desktop and the installed Whisper model")
