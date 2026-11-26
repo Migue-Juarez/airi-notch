@@ -1,0 +1,8 @@
+{
+  "name": "airi-copilot-quota",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@microsoft/copilot-sdk": "2.0.3"
+  }
+}

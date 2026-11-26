@@ -72,64 +72,52 @@ const FLOATING_BODY_SQUASH_DURATION_MS = 90;
 const FLOATING_BODY_STRETCH_DURATION_MS = 110;
 const FLOATING_BODY_SETTLE_DURATION_MS = 140;
 const COPILOT_CARD_RESIZE_DURATION_MS = 380;
+const COPILOT_AMBIENCE_INTERVAL_MS = 100;
+const HOME_CLOCK_INTERVAL_MS = 60 * 1000;
+const COPILOT_QUOTA_REFRESH_INTERVAL_MS = 5 * 60 * 1000;
 const COPILOT_NOTIFICATION_DURATION_MS = 5000;
 const COPILOT_NOTIFICATION_MAX_AGE_SECONDS = 120;
-const ACTIVE_SESSIONS_MAX_HEIGHT_PX = 180;
-const EXPANDED_PANEL_WIDTH_PX = 600;
+const COPILOT_ATTENTION_REMINDER_DELAY_MS = 5 * 60 * 1000;
+const COPILOT_ATTENTION_REMINDER_RETRY_MS = 30 * 1000;
+const ACTIVE_SESSIONS_MIN_HEIGHT_PX = 180;
+const ACTIVE_SESSIONS_MAX_HEIGHT_PX = 260;
+const EXPANDED_PANEL_WIDTH_PX = 720;
 const COMPACT_PANEL_WIDTH_PX = 340;
-const EMERALD_PALETTE = Object.freeze({
-    50: '#c7fdd8',
-    100: '#4ffa9b',
-    200: '#44da86',
-    300: '#3ec87b',
-    400: '#35b06b',
-    500: '#2c955a',
-    600: '#217848',
-    700: '#175b35',
-    800: '#0d3f23',
-    900: '#052311',
-    950: '#021508',
-});
-const SEANCE_PALETTE = Object.freeze({
-    50: '#f8edfe',
-    100: '#efd1fc',
-    200: '#e1a4fa',
-    300: '#d778f8',
-    400: '#ce41f5',
-    500: '#b124d4',
-    600: '#8f1bac',
-    700: '#6f1386',
-    800: '#550c68',
-    900: '#340540',
-    950: '#22022b',
+const HYBRID_PALETTE = Object.freeze({
+    teal: '#0f766e',
+    cream: '#f3e6cf',
+    violet: '#a24bff',
+    violetDark: '#550c68',
+    orange: '#f97316',
 });
 const PANEL_COLORS = Object.freeze({
     background: '#0e0e10',
-    surface: '#151518',
     raised: '#1b1b1f',
-    text: '#f2ebd9',
+    text: HYBRID_PALETTE.cream,
     muted: '#b3b0a6',
     subtle: '#8e8e93',
-    accent: EMERALD_PALETTE[100],
-    accentGlow: 'rgba(79,250,155,0.8)',
-    accentSoft: 'rgba(79,250,155,0.12)',
-    accentBorder: 'rgba(68,218,134,0.55)',
-    accentSoftBorder: 'rgba(68,218,134,0.24)',
-    recordingBorder: 'rgba(62,200,123,0.62)',
-    copilotAccent: SEANCE_PALETTE[200],
-    copilotSoft: 'rgba(177,36,212,0.14)',
-    copilotBorder: 'rgba(206,65,245,0.3)',
-    copilotSurface: SEANCE_PALETTE[950],
+    accent: HYBRID_PALETTE.teal,
+    accentText: HYBRID_PALETTE.cream,
+    accentGlow: 'rgba(15,118,110,0.75)',
+    accentSoft: 'rgba(15,118,110,0.22)',
+    accentBorder: 'rgba(243,230,207,0.7)',
+    accentSoftBorder: 'rgba(15,118,110,0.42)',
+    recordingBorder: 'rgba(15,118,110,0.88)',
+    copilotAccent: HYBRID_PALETTE.violet,
+    copilotText: HYBRID_PALETTE.cream,
+    copilotBorder: 'rgba(162,75,255,0.7)',
+    copilotSurface: 'rgba(162,75,255,0.2)',
+    copilotDetail: HYBRID_PALETTE.violetDark,
     blue: '#58b2ff',
-    attention: '#f5a623',
+    attention: HYBRID_PALETTE.orange,
     error: '#ff7676',
-    border: 'rgba(242,235,217,0.13)',
-    borderStrong: 'rgba(242,235,217,0.22)',
+    border: 'rgba(243,230,207,0.13)',
+    borderStrong: 'rgba(243,230,207,0.22)',
 });
 const COPILOT_NOTIFICATION_COLORS = {
     attention: PANEL_COLORS.attention,
     error: PANEL_COLORS.error,
-    ready: PANEL_COLORS.accent,
+    ready: PANEL_COLORS.accentText,
 };
 const OPEN_COPILOT_SESSION_STATUSES = Object.freeze([
     'idle', 'working', 'attention', 'ready', 'error',
@@ -156,12 +144,12 @@ const COPILOT_OVERVIEW_STATUS_LABELS = Object.freeze({
     error: 'Copilot con un error',
 });
 const FLOATING_BUTTON_STYLE = 'background-color: transparent; border: 0; outline: none; border-radius: 0; padding: 0; box-shadow: none;';
-const FLOATING_EYE_STYLE = `background-color: ${PANEL_COLORS.accent}; border: 1px solid ${EMERALD_PALETTE[50]}; border-radius: 4px; box-shadow: 0 0 8px ${PANEL_COLORS.accentGlow}, inset 0 0 2px rgba(199,253,216,0.4);`;
+const FLOATING_EYE_STYLE = `background-color: ${PANEL_COLORS.accent}; border: 1px solid ${PANEL_COLORS.accentText}; border-radius: 4px; box-shadow: 0 0 8px ${PANEL_COLORS.accentGlow}, inset 0 0 2px rgba(243,230,207,0.4);`;
 const FLOATING_GLASSES_STYLE = `background-color: rgba(14,14,16,0.14); border: 1px solid ${PANEL_COLORS.copilotAccent}; border-radius: 5px; box-shadow: 0 0 5px ${PANEL_COLORS.copilotBorder};`;
 const FLOATING_GLASSES_BRIDGE_STYLE = `background-color: ${PANEL_COLORS.copilotAccent}; border-radius: 2px;`;
 const FLOATING_EXPRESSION_MOUTH_STYLES = Object.freeze({
     smile: `background-color: transparent; border-bottom: 4px solid ${PANEL_COLORS.accent}; border-radius: 0 0 999px 999px;`,
-    open: `background-color: ${PANEL_COLORS.accent}; border: 1px solid rgba(199,253,216,0.82); border-radius: 999px;`,
+    open: `background-color: ${PANEL_COLORS.accent}; border: 1px solid ${PANEL_COLORS.text}; border-radius: 999px;`,
     wave: `background-color: transparent; border-top: 2px solid ${PANEL_COLORS.accent}; border-bottom: 2px solid ${PANEL_COLORS.accent}; border-radius: 999px;`,
     frown: `background-color: transparent; border-top: 3px solid ${PANEL_COLORS.error}; border-radius: 999px 999px 0 0;`,
     flat: `background-color: ${PANEL_COLORS.accent}; border-radius: 999px;`,
@@ -170,7 +158,7 @@ const FLOATING_EXPRESSION_CONFIGS = Object.freeze({
     contento: { mouth: 'smile', mouthWidth: 22, mouthHeight: 10 },
     enamorado: {
         eyeGlyph: '♥',
-        eyeGlyphColor: PANEL_COLORS.copilotAccent,
+        eyeGlyphColor: PANEL_COLORS.copilotText,
         mouth: 'smile',
         mouthWidth: 22,
         mouthHeight: 10,
@@ -181,7 +169,7 @@ const FLOATING_EXPRESSION_CONFIGS = Object.freeze({
         cheekColor: PANEL_COLORS.copilotAccent,
     },
     sorpresa: {
-        eyeStyle: `background-color: ${PANEL_COLORS.accent}; border: 2px solid rgba(199,253,216,0.9); border-radius: 999px; box-shadow: 0 0 8px ${PANEL_COLORS.accentGlow};`,
+        eyeStyle: `background-color: ${PANEL_COLORS.accent}; border: 2px solid ${PANEL_COLORS.text}; border-radius: 999px; box-shadow: 0 0 8px ${PANEL_COLORS.accentGlow};`,
         eyeWidth: 14,
         eyeHeight: 14,
         mouth: 'open',
@@ -225,7 +213,7 @@ const FLOATING_EXPRESSION_CONFIGS = Object.freeze({
         brows: true,
     },
     escucha: {
-        eyeStyle: `background-color: ${PANEL_COLORS.accent}; border: 1px solid rgba(199,253,216,0.85); border-radius: 999px; box-shadow: 0 0 8px ${PANEL_COLORS.accentGlow};`,
+        eyeStyle: `background-color: ${PANEL_COLORS.accent}; border: 1px solid ${PANEL_COLORS.text}; border-radius: 999px; box-shadow: 0 0 8px ${PANEL_COLORS.accentGlow};`,
         eyeWidth: 11,
         eyeHeight: 11,
         mouth: 'wave',
@@ -251,7 +239,7 @@ const FLOATING_EXPRESSION_CONFIGS = Object.freeze({
         cheeks: true,
         cheekOpacity: 110,
         accents: ['✦', '✦'],
-        accentColor: PANEL_COLORS.copilotAccent,
+        accentColor: PANEL_COLORS.accentText,
         cheekColor: PANEL_COLORS.accent,
     },
     saludo: {
@@ -281,15 +269,15 @@ const PANEL_OVERLAY_STYLES = Object.freeze({
     expanded: Object.freeze({
         idle: overlayStyle(EXPANDED_PANEL_WIDTH_PX, PANEL_COLORS.border),
         recording: overlayStyle(EXPANDED_PANEL_WIDTH_PX, PANEL_COLORS.recordingBorder),
-        notification: overlayStyle(EXPANDED_PANEL_WIDTH_PX, 'rgba(88,178,255,0.62)'),
-        attention: overlayStyle(EXPANDED_PANEL_WIDTH_PX, 'rgba(245,166,35,0.68)'),
+        notification: overlayStyle(EXPANDED_PANEL_WIDTH_PX, PANEL_COLORS.copilotAccent),
+        attention: overlayStyle(EXPANDED_PANEL_WIDTH_PX, 'rgba(249,115,22,0.68)'),
         error: overlayStyle(EXPANDED_PANEL_WIDTH_PX, 'rgba(255,118,118,0.68)'),
     }),
     compact: Object.freeze({
         idle: overlayStyle(COMPACT_PANEL_WIDTH_PX, PANEL_COLORS.border),
         recording: overlayStyle(COMPACT_PANEL_WIDTH_PX, PANEL_COLORS.recordingBorder),
-        notification: overlayStyle(COMPACT_PANEL_WIDTH_PX, 'rgba(88,178,255,0.62)'),
-        attention: overlayStyle(COMPACT_PANEL_WIDTH_PX, 'rgba(245,166,35,0.68)'),
+        notification: overlayStyle(COMPACT_PANEL_WIDTH_PX, PANEL_COLORS.copilotAccent),
+        attention: overlayStyle(COMPACT_PANEL_WIDTH_PX, 'rgba(249,115,22,0.68)'),
         error: overlayStyle(COMPACT_PANEL_WIDTH_PX, 'rgba(255,118,118,0.68)'),
     }),
 });
@@ -326,8 +314,23 @@ export default class VoiceToTerminalExtension extends Extension {
         this._panelCenteringTimer = 0;
         this._centerBox = null;
         this._centerBoxAllocationId = 0;
-        this._activePanelView = 'dictation';
-        this._panelViewSelectedByUser = false;
+        this._activePanelView = 'home';
+        this._homeClockTimer = 0;
+        this._homeOverviewRow = null;
+        this._homeClockBox = null;
+        this._homeTimeLabel = null;
+        this._homeDateLabel = null;
+        this._homeCopilotBox = null;
+        this._homeCopilotSummary = null;
+        this._homeCopilotDetail = null;
+        this._homeCopilotQuotaSummary = null;
+        this._homeCopilotQuotaDetail = null;
+        this._homeCopilotButton = null;
+        this._copilotQuotaPayload = null;
+        this._copilotQuotaProcess = null;
+        this._copilotQuotaInFlight = false;
+        this._copilotQuotaLastRequestedAt = 0;
+        this._copilotQuotaError = null;
         this._floatingBlinkTimer = 0;
         this._floatingBlinkRestoreTimer = 0;
         this._floatingSaccadeTimer = 0;
@@ -341,6 +344,13 @@ export default class VoiceToTerminalExtension extends Extension {
         this._copilotDismissTimer = 0;
         this._copilotNotification = null;
         this._copilotStatusBySession = new Map();
+        this._copilotAttentionReminders = new Map();
+        this._copilotAttentionReminderTimers = new Map();
+        this._copilotActivityLabels = new Map();
+        this._copilotAmbienceTimer = 0;
+        this._copilotAmbiencePhase = 0;
+        this._copilotAmbienceLayer = null;
+        this._copilotAmbienceNodes = [];
         this._copilotNotificationErrorNotified = false;
         this._meterTimer = 0;
         this._resultDismissTimer = 0;
@@ -357,6 +367,9 @@ export default class VoiceToTerminalExtension extends Extension {
             : null;
         this._copilotActiveSessionsPath = runtimeDir
             ? GLib.build_filenamev([runtimeDir, 'voice-to-terminal', 'active-sessions.json'])
+            : null;
+        this._copilotAttentionRemindersPath = runtimeDir
+            ? GLib.build_filenamev([runtimeDir, 'voice-to-terminal', 'attention-reminders.json'])
             : null;
         this._robotMoodPaths = {};
         this._robotMoodIcons = {};
@@ -450,6 +463,7 @@ export default class VoiceToTerminalExtension extends Extension {
                 this._positionOverlay();
             this._schedulePanelIndicatorCentering();
         });
+        this._loadCopilotAttentionReminders();
         this._startCopilotNotificationWatcher();
         this._runBackend(['--cancel'], (success, error) => {
             this._phase = 'idle';
@@ -467,6 +481,8 @@ export default class VoiceToTerminalExtension extends Extension {
 
         this._cancelOverlayHide();
         this._stopCopilotNotificationWatcher();
+        this._stopCopilotQuotaQuery();
+        this._cancelCopilotAttentionReminderTimers();
         if (this._focusId) {
             global.display.disconnect(this._focusId);
             this._focusId = 0;
@@ -541,13 +557,13 @@ export default class VoiceToTerminalExtension extends Extension {
                 text: '',
                 reactive: false,
                 visible: false,
-                style: `color: ${PANEL_COLORS.accent}; font-size: 15pt; font-weight: 700;`,
+                style: `color: ${PANEL_COLORS.accentText}; font-size: 15pt; font-weight: 700;`,
             }),
             new St.Label({
                 text: '',
                 reactive: false,
                 visible: false,
-                style: `color: ${PANEL_COLORS.accent}; font-size: 15pt; font-weight: 700;`,
+                style: `color: ${PANEL_COLORS.accentText}; font-size: 15pt; font-weight: 700;`,
             }),
         ];
         this._floatingGlasses = [
@@ -606,13 +622,13 @@ export default class VoiceToTerminalExtension extends Extension {
                 text: '',
                 reactive: false,
                 visible: false,
-                style: `color: ${PANEL_COLORS.accent}; font-size: 11pt; font-weight: 700;`,
+                style: `color: ${PANEL_COLORS.accentText}; font-size: 11pt; font-weight: 700;`,
             }),
             new St.Label({
                 text: '',
                 reactive: false,
                 visible: false,
-                style: `color: ${PANEL_COLORS.accent}; font-size: 11pt; font-weight: 700;`,
+                style: `color: ${PANEL_COLORS.accentText}; font-size: 11pt; font-weight: 700;`,
             }),
         ];
         for (const eye of this._floatingEyes)
@@ -1334,7 +1350,7 @@ export default class VoiceToTerminalExtension extends Extension {
             });
             glyph.text = eyeGlyph;
             glyph.visible = Boolean(eyeGlyph);
-            glyph.style = `color: ${config.eyeGlyphColor ?? PANEL_COLORS.accent}; font-size: 15pt; font-weight: 700;`;
+            glyph.style = `color: ${config.eyeGlyphColor ?? PANEL_COLORS.accentText}; font-size: 15pt; font-weight: 700;`;
             glyph.set_position(
                 layout.x - 4 + eyeOffsetX,
                 layout.y - 6 + gaze.y,
@@ -1405,7 +1421,7 @@ export default class VoiceToTerminalExtension extends Extension {
             const eye = this._floatingEyeLayout[index];
             accent.text = text;
             accent.visible = Boolean(text);
-            accent.style = `color: ${config.accentColor ?? PANEL_COLORS.accent}; font-size: ${config.accentFontSize ?? '11pt'}; font-weight: 700;`;
+            accent.style = `color: ${config.accentColor ?? PANEL_COLORS.accentText}; font-size: ${config.accentFontSize ?? '11pt'}; font-weight: 700;`;
             if (expression === 'escucha') {
                 accent.set_position(
                     (index === 0 ? Math.max(4, eye.x - 24) : eye.x + eye.width + 4)
@@ -1608,7 +1624,8 @@ export default class VoiceToTerminalExtension extends Extension {
             let latest = null;
             for (const record of this._copilotStatusBySession.values()) {
                 if (record.status === currentStatus
-                    && (!latest || record.createdAt > latest.createdAt))
+                    && (!latest || (record.updatedAt ?? record.createdAt)
+                        > (latest.updatedAt ?? latest.createdAt)))
                     latest = record;
             }
             if (latest)
@@ -1625,12 +1642,14 @@ export default class VoiceToTerminalExtension extends Extension {
         const candidates = ['error', 'ready']
             .map(status => this._getCopilotStatusRecord(status))
             .filter(Boolean)
-            .sort((left, right) => right.createdAt - left.createdAt);
+            .sort((left, right) => (right.updatedAt ?? right.createdAt)
+                - (left.updatedAt ?? left.createdAt));
         const notification = candidates[0];
         if (!notification)
             return null;
 
-        const age = GLib.get_real_time() / 1_000_000 - notification.createdAt;
+        const age = GLib.get_real_time() / 1_000_000
+            - (notification.updatedAt ?? notification.createdAt);
         if (age < -5 || age > COPILOT_NOTIFICATION_DURATION_MS / 1000)
             return null;
         return notification;
@@ -1712,7 +1731,6 @@ export default class VoiceToTerminalExtension extends Extension {
         this._stopTimers();
         this._clearCopilotNotification();
         this._activePanelView = 'dictation';
-        this._panelViewSelectedByUser = true;
         this._resultText = '';
         const focusedWindow = global.display.focus_window;
         this._targetWindow = focusedWindow?.get_window_type() === 0
@@ -1994,8 +2012,9 @@ export default class VoiceToTerminalExtension extends Extension {
             + screenCenter - buttonCenter;
     }
 
-    _showOverlay(anchor = this._floatingButton) {
-        const variant = anchor === this._floatingButton ? 'compact' : 'expanded';
+    _showOverlay(anchor = this._floatingButton, variantOverride = null) {
+        const variant = variantOverride
+            ?? (anchor === this._floatingButton ? 'compact' : 'expanded');
         if (this._overlay && this._overlayAnchor === anchor
             && this._overlayVariant === variant)
             return;
@@ -2004,12 +2023,8 @@ export default class VoiceToTerminalExtension extends Extension {
 
         this._overlayAnchor = anchor;
         this._overlayVariant = variant;
-        this._panelViewSelectedByUser = false;
         if (variant === 'expanded') {
-            this._activePanelView = this._copilotNotification
-                || this._getOpenCopilotSessions().length
-                ? 'copilot'
-                : 'dictation';
+            this._activePanelView = this._copilotNotification ? 'copilot' : 'home';
         }
 
         const box = new St.BoxLayout({
@@ -2046,6 +2061,11 @@ export default class VoiceToTerminalExtension extends Extension {
                 vertical: true,
                 style: 'spacing: 6px;',
             });
+            navigation.add_child(this._createPanelNavigationButton(
+                'home',
+                'Inicio',
+                'go-home-symbolic',
+            ));
             navigation.add_child(this._createPanelNavigationButton(
                 'dictation',
                 'Dictado',
@@ -2095,19 +2115,46 @@ export default class VoiceToTerminalExtension extends Extension {
                 style: 'spacing: 4px; padding-bottom: 4px;',
             });
             this._panelHeading = new St.Label({
-                text: 'Dictado',
+                text: 'Inicio',
                 style: `color: ${PANEL_COLORS.text}; font-size: 18pt; font-weight: 700;`,
             });
             this._panelSubtitle = new St.Label({
-                text: 'Texto local en la ventana activa',
+                text: 'Resumen de Airi y Copilot',
                 style: `color: ${PANEL_COLORS.subtle}; font-size: 10pt;`,
             });
             panelHeader.add_child(this._panelHeading);
             panelHeader.add_child(this._panelSubtitle);
             content.add_child(panelHeader);
+            this._homeOverviewRow = new St.BoxLayout({
+                vertical: true,
+                x_expand: true,
+                style: 'spacing: 12px; padding: 2px 0 4px;',
+                visible: false,
+            });
+            content.add_child(this._homeOverviewRow);
+            this._homeClockBox = new St.BoxLayout({
+                vertical: true,
+                style: 'spacing: 2px; padding: 2px 0 4px;',
+                visible: false,
+            });
+            this._homeTimeLabel = new St.Label({
+                text: '',
+                style: `color: ${PANEL_COLORS.text}; font-size: 30pt; font-weight: 500;`,
+            });
+            this._homeDateLabel = new St.Label({
+                text: '',
+                style: `color: ${PANEL_COLORS.muted}; font-size: 10pt;`,
+            });
+            this._homeClockBox.add_child(this._homeTimeLabel);
+            this._homeClockBox.add_child(this._homeDateLabel);
+            this._homeOverviewRow.add_child(this._homeClockBox);
         } else {
             this._panelHeading = null;
             this._panelSubtitle = null;
+            this._homeOverviewRow = null;
+            this._homeClockBox = null;
+            this._homeTimeLabel = null;
+            this._homeDateLabel = null;
         }
 
         this._statusRow = new St.BoxLayout({
@@ -2123,9 +2170,9 @@ export default class VoiceToTerminalExtension extends Extension {
             visible: false,
         });
         const dotColors = [
-            EMERALD_PALETTE[200],
-            EMERALD_PALETTE[50],
-            EMERALD_PALETTE[400],
+            PANEL_COLORS.accentText,
+            PANEL_COLORS.accent,
+            PANEL_COLORS.accentText,
         ];
         const dotSizes = [8, 12, 8];
         this._dots = dotColors.map((color, index) => {
@@ -2142,11 +2189,11 @@ export default class VoiceToTerminalExtension extends Extension {
         });
         const meterHeights = [10, 16, 24, 16, 10];
         const meterColors = [
-            EMERALD_PALETTE[400],
-            EMERALD_PALETTE[200],
-            EMERALD_PALETTE[100],
-            EMERALD_PALETTE[200],
-            EMERALD_PALETTE[400],
+            PANEL_COLORS.accentText,
+            PANEL_COLORS.accent,
+            PANEL_COLORS.accent,
+            PANEL_COLORS.accent,
+            PANEL_COLORS.accentText,
         ];
         this._meterBars = meterHeights.map((height, index) => {
             const bar = new St.Widget({
@@ -2162,39 +2209,107 @@ export default class VoiceToTerminalExtension extends Extension {
         content.add_child(this._statusRow);
 
         if (variant === 'expanded') {
-            this._activeSessionsBox = new St.BoxLayout({
+            this._homeCopilotBox = new St.BoxLayout({
                 vertical: true,
-                style: `spacing: 10px; padding: 14px; background-color: ${PANEL_COLORS.surface}; border: 1px solid ${PANEL_COLORS.border}; border-radius: 16px;`,
+                x_expand: true,
+                style: `spacing: 8px; padding: 12px; background-color: ${PANEL_COLORS.raised}; border: 1px solid ${PANEL_COLORS.border}; border-radius: 14px;`,
                 visible: false,
             });
-            const activeSessionsHeading = new St.Label({
-                text: 'Sesiones abiertas',
-                style: `color: ${PANEL_COLORS.text}; font-size: 13pt; font-weight: 700;`,
+            this._homeCopilotBox.add_child(new St.Label({
+                text: 'Copilot',
+                style: `color: ${PANEL_COLORS.text}; font-size: 12pt; font-weight: 500;`,
+            }));
+            this._homeCopilotSummary = new St.Label({
+                text: 'Sin sesiones abiertas',
+                x_expand: true,
+                style: `color: ${PANEL_COLORS.muted}; font-size: 13pt; font-weight: 500;`,
             });
+            this._homeCopilotDetail = new St.Label({
+                text: 'Tus sesiones abiertas aparecerán acá',
+                x_expand: true,
+                style: `color: ${PANEL_COLORS.muted}; font-size: 10pt;`,
+            });
+            this._homeCopilotDetail.clutter_text.line_wrap = false;
+            this._homeCopilotDetail.clutter_text.ellipsize = Pango.EllipsizeMode.END;
+            this._homeCopilotBox.add_child(this._homeCopilotSummary);
+            this._homeCopilotBox.add_child(this._homeCopilotDetail);
+            this._homeCopilotQuotaSummary = new St.Label({
+                text: 'Consultando cuota de Copilot…',
+                x_expand: true,
+                style: `color: ${PANEL_COLORS.muted}; font-size: 10pt;`,
+            });
+            this._homeCopilotQuotaSummary.clutter_text.line_wrap = true;
+            this._homeCopilotQuotaDetail = new St.Label({
+                text: 'Datos de uso del SDK oficial',
+                x_expand: true,
+                style: `color: ${PANEL_COLORS.subtle}; font-size: 9pt;`,
+            });
+            this._homeCopilotQuotaDetail.clutter_text.line_wrap = true;
+            this._homeCopilotBox.add_child(this._homeCopilotQuotaSummary);
+            this._homeCopilotBox.add_child(this._homeCopilotQuotaDetail);
+            this._renderCopilotQuota();
+            this._homeCopilotButton = new St.Button({
+                can_focus: true,
+                reactive: true,
+                track_hover: true,
+                accessible_name: 'Ver sesiones de Copilot',
+                style: `color: ${PANEL_COLORS.copilotText}; background-color: ${PANEL_COLORS.copilotSurface}; border: 1px solid ${PANEL_COLORS.copilotBorder}; border-radius: 12px; min-height: 44px; padding: 0 12px;`,
+            });
+            this._homeCopilotButton.set_child(new St.Label({
+                text: 'Ver sesiones',
+                style: `color: ${PANEL_COLORS.copilotText}; font-size: 10pt; font-weight: 500;`,
+            }));
+            this._homeCopilotButton.connect('clicked', () => this._setPanelView('copilot'));
+            this._homeCopilotBox.add_child(this._homeCopilotButton);
+            this._homeOverviewRow.add_child(this._homeCopilotBox);
+
+            this._activeSessionsBox = new St.Widget({
+                layout_manager: new Clutter.BinLayout(),
+                x_expand: true,
+                y_expand: true,
+                style: `min-height: ${ACTIVE_SESSIONS_MIN_HEIGHT_PX}px;`,
+                visible: false,
+            });
+            this._copilotAmbienceLayer = this._createCopilotAmbience();
+            this._activeSessionsBox.add_child(this._copilotAmbienceLayer);
+            const activeSessionsContent = new St.BoxLayout({
+                vertical: true,
+                x_expand: true,
+                y_expand: true,
+                style: 'spacing: 8px;',
+            });
+            this._activeSessionsBox.add_child(activeSessionsContent);
             this._activeSessionsList = new St.BoxLayout({
                 vertical: true,
-                style: 'spacing: 6px;',
+                style: 'spacing: 8px;',
             });
             this._activeSessionsScroll = new St.ScrollView({
                 x_expand: true,
-                overlay_scrollbars: true,
+                y_expand: true,
                 style: `max-height: ${ACTIVE_SESSIONS_MAX_HEIGHT_PX}px;`,
             });
-            this._activeSessionsScroll.set_policy(St.PolicyType.NEVER, St.PolicyType.AUTOMATIC);
+            this._activeSessionsScroll.set_policy(St.PolicyType.NEVER, St.PolicyType.NEVER);
             this._activeSessionsScroll.add_child(this._activeSessionsList);
             this._activeSessionsEmptyState = new St.Label({
                 text: 'No hay sesiones abiertas',
                 style: `color: ${PANEL_COLORS.subtle}; font-size: 10pt;`,
             });
-            this._activeSessionsBox.add_child(activeSessionsHeading);
-            this._activeSessionsBox.add_child(this._activeSessionsScroll);
-            this._activeSessionsBox.add_child(this._activeSessionsEmptyState);
-            content.add_child(this._activeSessionsBox);
+            activeSessionsContent.add_child(this._activeSessionsScroll);
+            activeSessionsContent.add_child(this._activeSessionsEmptyState);
         } else {
             this._activeSessionsBox = null;
             this._activeSessionsList = null;
             this._activeSessionsScroll = null;
             this._activeSessionsEmptyState = null;
+            this._copilotAmbienceLayer = null;
+            this._copilotAmbienceNodes = [];
+            this._homeOverviewRow = null;
+            this._homeCopilotBox = null;
+            this._homeCopilotSummary = null;
+            this._homeCopilotDetail = null;
+            this._homeCopilotQuotaSummary = null;
+            this._homeCopilotQuotaDetail = null;
+            this._homeCopilotButton = null;
             this._compactSessionSummary = new St.Label({
                 text: '',
                 x_expand: true,
@@ -2212,7 +2327,7 @@ export default class VoiceToTerminalExtension extends Extension {
             text: '',
             x_expand: true,
             y_align: Clutter.ActorAlign.CENTER,
-            style: `color: ${PANEL_COLORS.copilotAccent}; font-size: 12pt; font-weight: 600;`,
+            style: `color: ${PANEL_COLORS.copilotText}; font-size: 12pt; font-weight: 600;`,
             visible: false,
         });
         this._sessionTitle.clutter_text.line_wrap = true;
@@ -2226,16 +2341,18 @@ export default class VoiceToTerminalExtension extends Extension {
         });
         this._caption.clutter_text.line_wrap = true;
         content.add_child(this._caption);
+        if (variant === 'expanded')
+            content.add_child(this._activeSessionsBox);
 
         this._actionIcon = new St.Icon({
             gicon: new Gio.FileIcon({ file: Gio.File.new_for_path(this._microphoneIconPath) }),
             icon_size: 20,
-            style: `color: ${PANEL_COLORS.background};`,
+            style: `color: ${PANEL_COLORS.text};`,
         });
         this._stopIcon = new St.Icon({
             icon_name: 'media-playback-stop-symbolic',
             icon_size: 20,
-            style: `color: ${PANEL_COLORS.background};`,
+            style: `color: ${PANEL_COLORS.text};`,
         });
         this._hideFloatingIcon = new St.Icon({
             icon_name: 'view-conceal-symbolic',
@@ -2313,6 +2430,361 @@ export default class VoiceToTerminalExtension extends Extension {
             this._animate();
     }
 
+    _createCopilotAmbience() {
+        const layer = new St.Widget({
+            layout_manager: new Clutter.FixedLayout(),
+            x_expand: true,
+            y_expand: true,
+            reactive: false,
+            style: 'min-height: 164px; border-radius: 14px; background-color: rgba(162,75,255,0.025);',
+        });
+        const decorations = [
+            {
+                style: 'background-color: rgba(162,75,255,0.12); border-radius: 999px; box-shadow: 0 0 44px 20px rgba(162,75,255,0.10);',
+                width: 104, height: 104, x: 0.08, y: 0.18, driftX: 9, driftY: 7,
+                minOpacity: 115, maxOpacity: 170, speed: 0.7, phase: 0.2,
+            },
+            {
+                style: 'background-color: rgba(88,178,255,0.10); border-radius: 999px; box-shadow: 0 0 42px 18px rgba(88,178,255,0.08);',
+                width: 92, height: 92, x: 0.72, y: 0.42, driftX: 11, driftY: 8,
+                minOpacity: 100, maxOpacity: 150, speed: 0.55, phase: 2.4,
+            },
+            {
+                text: '⌘', style: 'color: rgba(162,75,255,0.34); font-size: 14pt;',
+                width: 32, height: 32, x: 0.22, y: 0.12, driftX: 8, driftY: 10,
+                minOpacity: 42, maxOpacity: 76, speed: 0.8, phase: 1.2,
+            },
+            {
+                text: '</>', style: 'color: rgba(88,178,255,0.34); font-size: 11pt;',
+                width: 38, height: 32, x: 0.76, y: 0.12, driftX: 7, driftY: 9,
+                minOpacity: 38, maxOpacity: 68, speed: 0.65, phase: 3.1,
+            },
+            {
+                text: '✧', style: 'color: rgba(162,75,255,0.36); font-size: 16pt;',
+                width: 32, height: 32, x: 0.54, y: 0.68, driftX: 10, driftY: 6,
+                minOpacity: 40, maxOpacity: 72, speed: 0.9, phase: 4.4,
+            },
+            {
+                text: '◇', style: 'color: rgba(88,178,255,0.32); font-size: 15pt;',
+                width: 32, height: 32, x: 0.34, y: 0.72, driftX: 8, driftY: 7,
+                minOpacity: 36, maxOpacity: 64, speed: 0.6, phase: 5.2,
+            },
+        ];
+        this._copilotAmbienceNodes = decorations.map(decoration => {
+            const actor = decoration.text
+                ? new St.Label({
+                    text: decoration.text,
+                    width: decoration.width,
+                    height: decoration.height,
+                    reactive: false,
+                    can_focus: false,
+                    style: decoration.style,
+                })
+                : new St.Widget({
+                    width: decoration.width,
+                    height: decoration.height,
+                    reactive: false,
+                    style: decoration.style,
+                });
+            actor.set_position(0, 0);
+            layer.add_child(actor);
+            return { actor, ...decoration };
+        });
+        return layer;
+    }
+
+    _updateHomeClock() {
+        const now = new Date();
+        this._homeTimeLabel.text = new Intl.DateTimeFormat('es-AR', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hourCycle: 'h23',
+        }).format(now);
+        this._homeDateLabel.text = new Intl.DateTimeFormat('es-AR', {
+            weekday: 'long',
+            day: 'numeric',
+            month: 'long',
+        }).format(now);
+    }
+
+    _setHomeClockActive(active) {
+        if (!active) {
+            this._stopHomeClock();
+            return;
+        }
+        if (this._homeClockTimer || !this._homeClockBox)
+            return;
+
+        this._updateHomeClock();
+        this._refreshCopilotQuota();
+        this._homeClockTimer = GLib.timeout_add(
+            GLib.PRIORITY_DEFAULT,
+            HOME_CLOCK_INTERVAL_MS,
+            () => {
+                if (this._disposed || !this._homeClockBox?.visible) {
+                    this._homeClockTimer = 0;
+                    return GLib.SOURCE_REMOVE;
+                }
+                this._updateHomeClock();
+                this._refreshCopilotQuota();
+                return GLib.SOURCE_CONTINUE;
+            },
+        );
+    }
+
+    _readCopilotQuotaRuntimePath(filename) {
+        const path = GLib.build_filenamev([
+            GLib.get_user_data_dir(),
+            'voice-to-terminal',
+            'copilot-quota',
+            filename,
+        ]);
+        const file = Gio.File.new_for_path(path);
+        if (!file.query_exists(null))
+            return null;
+        const [success, contents] = file.load_contents(null);
+        if (!success)
+            throw new Error(`No se pudo leer la ruta local ${filename}`);
+        return new TextDecoder().decode(contents).trim() || null;
+    }
+
+    _refreshCopilotQuota() {
+        const now = Date.now();
+        if (this._disposed || !this._homeCopilotBox?.visible
+            || this._copilotQuotaInFlight
+            || now - this._copilotQuotaLastRequestedAt < COPILOT_QUOTA_REFRESH_INTERVAL_MS)
+            return;
+
+        this._copilotQuotaLastRequestedAt = now;
+        this._copilotQuotaInFlight = true;
+        this._copilotQuotaError = null;
+        this._renderCopilotQuota();
+
+        let nodePath;
+        let copilotPath;
+        try {
+            nodePath = this._readCopilotQuotaRuntimePath('node-path')
+                || GLib.find_program_in_path('node');
+            copilotPath = GLib.getenv('COPILOT_CLI_PATH')
+                || this._readCopilotQuotaRuntimePath('copilot-cli-path')
+                || GLib.find_program_in_path('copilot');
+        } catch (error) {
+            this._copilotQuotaInFlight = false;
+            this._copilotQuotaError = error;
+            logError(error, 'Airi: no se pudo leer la configuración de cuota de Copilot');
+            this._renderCopilotQuota();
+            return;
+        }
+        if (!nodePath || !copilotPath) {
+            this._copilotQuotaInFlight = false;
+            this._copilotQuotaError = new Error('Node.js or Copilot CLI is unavailable');
+            logError(this._copilotQuotaError, 'Airi: no se pudo consultar la cuota de Copilot');
+            this._renderCopilotQuota();
+            return;
+        }
+
+        const readerPath = GLib.build_filenamev([
+            GLib.get_user_data_dir(),
+            'voice-to-terminal',
+            'copilot-quota',
+            'read-quota.mjs',
+        ]);
+        const lifecycle = this._lifecycle;
+        let process;
+        try {
+            const launcher = new Gio.SubprocessLauncher({
+                flags: Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_PIPE,
+            });
+            launcher.setenv('COPILOT_CLI_PATH', copilotPath, true);
+            process = launcher.spawnv([nodePath, readerPath]);
+            this._copilotQuotaProcess = process;
+        } catch (error) {
+            this._copilotQuotaInFlight = false;
+            this._copilotQuotaError = error;
+            logError(error, 'Airi: no se pudo iniciar la consulta de cuota de Copilot');
+            this._renderCopilotQuota();
+            return;
+        }
+
+        process.communicate_utf8_async(null, null, (subprocess, result) => {
+            if (this._copilotQuotaProcess === subprocess)
+                this._copilotQuotaProcess = null;
+            this._copilotQuotaInFlight = false;
+            if (this._disposed || lifecycle !== this._lifecycle)
+                return;
+
+            let stdout = '';
+            let stderr = '';
+            try {
+                [, stdout, stderr] = subprocess.communicate_utf8_finish(result);
+            } catch (error) {
+                this._copilotQuotaError = error;
+                logError(error, 'Airi: no se pudo leer la cuota de Copilot');
+                this._renderCopilotQuota();
+                return;
+            }
+
+            if (!subprocess.get_successful()) {
+                this._copilotQuotaError = new Error(
+                    (stderr ?? '').trim().split('\n').pop()
+                    || 'El proceso terminó inesperadamente.',
+                );
+                logError(this._copilotQuotaError, 'Airi: no se pudo consultar la cuota de Copilot');
+                this._renderCopilotQuota();
+                return;
+            }
+
+            try {
+                this._copilotQuotaPayload = JSON.parse((stdout ?? '').trim());
+                this._copilotQuotaError = null;
+            } catch (error) {
+                this._copilotQuotaError = error;
+                logError(error, 'Airi: la respuesta de cuota de Copilot no es válida');
+            }
+            this._renderCopilotQuota();
+        });
+    }
+
+    _renderCopilotQuota() {
+        if (!this._homeCopilotQuotaSummary || !this._homeCopilotQuotaDetail)
+            return;
+
+        if (this._copilotQuotaError) {
+            this._homeCopilotQuotaSummary.text = 'Cuota de Copilot no disponible';
+            this._homeCopilotQuotaDetail.text = 'Revisá la conexión y la sesión del CLI';
+            return;
+        }
+
+        const snapshot = this._copilotQuotaPayload?.quotaSnapshots?.premium_interactions;
+        if (!snapshot) {
+            this._homeCopilotQuotaSummary.text = this._copilotQuotaInFlight
+                ? 'Consultando cuota de Copilot…'
+                : 'Cuota de Copilot sin datos';
+            this._homeCopilotQuotaDetail.text = 'Fuente: SDK oficial de Copilot';
+            return;
+        }
+
+        const used = Number(snapshot.usedRequests);
+        const entitlement = Number(snapshot.entitlementRequests);
+        if (snapshot.usedRequests === null || snapshot.usedRequests === undefined
+            || snapshot.entitlementRequests === null || snapshot.entitlementRequests === undefined
+            || !Number.isFinite(used) || !Number.isFinite(entitlement)) {
+            this._homeCopilotQuotaSummary.text = 'Cuota de Copilot sin datos';
+            this._homeCopilotQuotaDetail.text = 'El SDK no informó el uso o el límite';
+            return;
+        }
+
+        const formatNumber = value => new Intl.NumberFormat('es-AR').format(value);
+        const remaining = entitlement >= 0 ? Math.max(entitlement - used, 0) : null;
+        this._homeCopilotQuotaSummary.text = entitlement >= 0
+            ? `Cuota Copilot (SDK): ${formatNumber(used)} / ${formatNumber(entitlement)} usados · ${formatNumber(remaining)} restantes`
+            : `Cuota Copilot (SDK): ${formatNumber(used)} usados · sin límite`;
+
+        const detail = [];
+        if (Number.isFinite(snapshot.remainingPercentage)) {
+            const percentage = new Intl.NumberFormat('es-AR', {
+                maximumFractionDigits: 1,
+            }).format(snapshot.remainingPercentage);
+            detail.push(`${percentage}% disponibles`);
+        }
+        if (snapshot.resetDate) {
+            const resetTimestamp = Date.parse(snapshot.resetDate);
+            const resetDate = Number.isFinite(resetTimestamp)
+                ? new Intl.DateTimeFormat('es-AR', {
+                    day: 'numeric',
+                    month: 'short',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                }).format(new Date(resetTimestamp))
+                : null;
+            if (resetDate)
+                    detail.push(`resetDate del SDK (no confirmado): ${resetDate}`);
+        }
+        if (this._copilotQuotaPayload.fetchedAt) {
+            const fetchedTimestamp = Date.parse(this._copilotQuotaPayload.fetchedAt);
+            if (Number.isFinite(fetchedTimestamp)) {
+                detail.push(`consulta ${new Intl.DateTimeFormat('es-AR', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                }).format(new Date(fetchedTimestamp))}`);
+            }
+        }
+        this._homeCopilotQuotaDetail.text = detail.join(' · ')
+            || 'Fuente: SDK oficial de Copilot';
+    }
+
+    _stopCopilotQuotaQuery() {
+        if (!this._copilotQuotaProcess)
+            return;
+        this._copilotQuotaProcess.force_exit();
+        this._copilotQuotaProcess = null;
+        this._copilotQuotaInFlight = false;
+    }
+
+    _stopHomeClock() {
+        if (!this._homeClockTimer)
+            return;
+        GLib.source_remove(this._homeClockTimer);
+        this._homeClockTimer = 0;
+    }
+
+    _setCopilotAmbienceActive(active) {
+        if (!active) {
+            this._stopCopilotAmbience();
+            return;
+        }
+        if (this._copilotAmbienceTimer || !this._copilotAmbienceLayer)
+            return;
+
+        this._animateCopilotAmbience();
+        this._copilotAmbienceTimer = GLib.timeout_add(
+            GLib.PRIORITY_DEFAULT,
+            COPILOT_AMBIENCE_INTERVAL_MS,
+            () => {
+                if (this._disposed || !this._activeSessionsBox?.visible) {
+                    this._copilotAmbienceTimer = 0;
+                    return GLib.SOURCE_REMOVE;
+                }
+                this._animateCopilotAmbience();
+                return GLib.SOURCE_CONTINUE;
+            },
+        );
+    }
+
+    _animateCopilotAmbience() {
+        if (!this._copilotAmbienceLayer || !this._copilotAmbienceNodes.length)
+            return;
+
+        this._copilotAmbiencePhase = (this._copilotAmbiencePhase + 0.035) % (Math.PI * 2);
+        const width = Math.max(
+            1,
+            this._copilotAmbienceLayer.width
+                || Math.max(240, (this._overlay?.width ?? EXPANDED_PANEL_WIDTH_PX) - 190),
+        );
+        const height = Math.max(
+            1,
+            this._copilotAmbienceLayer.height || ACTIVE_SESSIONS_MAX_HEIGHT_PX,
+        );
+        for (const node of this._copilotAmbienceNodes) {
+            const maxX = Math.max(0, width - node.width);
+            const maxY = Math.max(0, height - node.height);
+            const movement = Math.sin(this._copilotAmbiencePhase * node.speed + node.phase);
+            node.actor.set_position(
+                Math.round(Math.max(0, Math.min(maxX, node.x * maxX + movement * node.driftX))),
+                Math.round(Math.max(0, Math.min(maxY, node.y * maxY + movement * node.driftY))),
+            );
+            node.actor.opacity = Math.round(node.minOpacity
+                + ((movement + 1) / 2) * (node.maxOpacity - node.minOpacity));
+        }
+    }
+
+    _stopCopilotAmbience() {
+        if (!this._copilotAmbienceTimer)
+            return;
+        GLib.source_remove(this._copilotAmbienceTimer);
+        this._copilotAmbienceTimer = 0;
+    }
+
     _createPanelNavigationButton(view, label, iconName) {
         const button = new St.Button({
             can_focus: true,
@@ -2360,7 +2832,6 @@ export default class VoiceToTerminalExtension extends Extension {
             return;
 
         this._activePanelView = view;
-        this._panelViewSelectedByUser = true;
         this._updateOverlay();
     }
 
@@ -2400,13 +2871,14 @@ export default class VoiceToTerminalExtension extends Extension {
         const minX = monitor.x + margin;
         const maxX = Math.max(minX, monitor.x + monitor.width - overlayWidth - margin);
         const floatingAnchor = anchor === this._floatingButton;
-        const centeredPanel = this._overlayVariant === 'expanded';
-        let x = centeredPanel
+        const centeredOverlay = this._overlayVariant === 'expanded'
+            || (this._overlayVariant === 'compact' && Boolean(this._copilotNotification));
+        let x = centeredOverlay
             ? monitor.x + (monitor.width - overlayWidth) / 2
             : floatingAnchor
                 ? anchorX + anchorWidth + FLOATING_CARD_GAP_PX
                 : anchorX + anchorWidth + margin;
-        if (!centeredPanel && x + overlayWidth > monitor.x + monitor.width - margin) {
+        if (!centeredOverlay && x + overlayWidth > monitor.x + monitor.width - margin) {
             x = floatingAnchor
                 ? anchorX - overlayWidth - FLOATING_CARD_GAP_PX
                 : anchorX - overlayWidth - margin;
@@ -2463,13 +2935,43 @@ export default class VoiceToTerminalExtension extends Extension {
             .sort((left, right) => {
                 const priorityDifference = COPILOT_SESSION_STATUS_PRIORITY[left.status]
                     - COPILOT_SESSION_STATUS_PRIORITY[right.status];
-                return priorityDifference || right.createdAt - left.createdAt;
+                return priorityDifference
+                    || (right.updatedAt ?? right.createdAt)
+                        - (left.updatedAt ?? left.createdAt);
             });
+    }
+
+    _groupCopilotSessionsByProject(sessions) {
+        const groups = new Map();
+        for (const session of sessions) {
+            const project = session.project?.trim() || 'Proyecto desconocido';
+            if (!groups.has(project))
+                groups.set(project, []);
+            groups.get(project).push(session);
+        }
+        return [...groups.entries()].map(([project, groupedSessions]) => ({
+            project,
+            sessions: groupedSessions,
+        }));
+    }
+
+    _createCopilotProjectHeading(project, count) {
+        const heading = new St.Label({
+            text: count === 1 ? project : `${project} · ${count} sesiones`,
+            style: `color: ${PANEL_COLORS.copilotAccent}; border-left: 2px solid ${PANEL_COLORS.copilotDetail}; font-size: 9pt; font-weight: 600; padding: 2px 0 2px 8px;`,
+        });
+        heading.clutter_text.line_wrap = false;
+        heading.clutter_text.ellipsize = Pango.EllipsizeMode.END;
+        return heading;
     }
 
     _createActiveCopilotSessionRow(record) {
         const row = new St.BoxLayout({
-            style: `spacing: 10px; padding: 9px 10px; background-color: ${PANEL_COLORS.raised}; border: 1px solid ${PANEL_COLORS.border}; border-radius: 14px;`,
+            vertical: true,
+            style: `spacing: 6px; padding: 8px 10px; background-color: ${PANEL_COLORS.raised}; border: 1px solid ${PANEL_COLORS.border}; border-radius: 14px;`,
+        });
+        const mainRow = new St.BoxLayout({
+            style: 'spacing: 10px; min-height: 24px;',
         });
         const sessionName = new St.Label({
             text: record.sessionName || 'Sesión sin título',
@@ -2479,20 +2981,60 @@ export default class VoiceToTerminalExtension extends Extension {
         });
         sessionName.clutter_text.line_wrap = false;
         sessionName.clutter_text.ellipsize = Pango.EllipsizeMode.END;
-        const statusStyle = record.status === 'attention'
-            ? `color: ${PANEL_COLORS.attention}; background-color: rgba(245,166,35,0.14); border: 1px solid rgba(245,166,35,0.32);`
+        const statusColor = record.status === 'attention'
+            ? PANEL_COLORS.attention
             : record.status === 'error'
-                ? `color: ${PANEL_COLORS.error}; background-color: rgba(255,118,118,0.12); border: 1px solid rgba(255,118,118,0.3);`
+                ? PANEL_COLORS.error
                 : record.status === 'idle'
-                    ? `color: ${PANEL_COLORS.muted}; background-color: ${PANEL_COLORS.raised}; border: 1px solid ${PANEL_COLORS.border};`
-                    : `color: ${PANEL_COLORS.copilotAccent}; background-color: ${PANEL_COLORS.copilotSurface}; border: 1px solid ${PANEL_COLORS.copilotBorder};`;
+                    ? PANEL_COLORS.muted
+                    : PANEL_COLORS.copilotAccent;
         const statusTag = new St.Label({
             text: COPILOT_SESSION_STATUS_LABELS[record.status] ?? 'Estado desconocido',
             y_align: Clutter.ActorAlign.CENTER,
-            style: `${statusStyle} border-radius: 999px; padding: 4px 8px; font-size: 8pt; font-weight: 500;`,
+            style: `color: ${statusColor}; padding: 2px 0; font-size: 8pt; font-weight: 600;`,
         });
-        row.add_child(sessionName);
-        row.add_child(statusTag);
+        mainRow.add_child(sessionName);
+        mainRow.add_child(statusTag);
+        row.add_child(mainRow);
+
+        const detailsRow = new St.BoxLayout({
+            style: 'spacing: 8px; min-height: 22px;',
+        });
+        const activity = new St.Label({
+            text: this._formatRelativeActivity(record.updatedAt ?? record.createdAt),
+            x_expand: true,
+            y_align: Clutter.ActorAlign.CENTER,
+            style: `color: ${PANEL_COLORS.muted}; font-size: 8pt;`,
+        });
+        activity.clutter_text.line_wrap = false;
+        this._copilotActivityLabels.set(activity, record.updatedAt ?? record.createdAt);
+        detailsRow.add_child(activity);
+        const remindAt = this._copilotAttentionReminders.get(record.sessionId);
+        if (record.status === 'attention') {
+            if (remindAt) {
+                const reminderLabel = new St.Label({
+                    text: `Aviso ${this._formatCopilotReminderTime(remindAt)}`,
+                    y_align: Clutter.ActorAlign.CENTER,
+                    style: `color: ${PANEL_COLORS.attention}; font-size: 8pt;`,
+                });
+                detailsRow.add_child(reminderLabel);
+            }
+            const snoozeButton = new St.Button({
+                can_focus: true,
+                reactive: true,
+                accessible_name: `Posponer 5 minutos la sesión ${record.sessionName || record.project || ''}`.trim(),
+                style: `background-color: rgba(249,115,22,0.12); border: 1px solid rgba(249,115,22,0.32); border-radius: 999px; padding: 3px 8px;`,
+            });
+            snoozeButton.set_child(new St.Label({
+                text: 'Posponer 5 min',
+                style: `color: ${PANEL_COLORS.attention}; font-size: 8pt;`,
+            }));
+            snoozeButton.connect('clicked', () => {
+                this._snoozeCopilotAttention(record.sessionId);
+            });
+            detailsRow.add_child(snoozeButton);
+        }
+        row.add_child(detailsRow);
         return row;
     }
 
@@ -2506,8 +3048,11 @@ export default class VoiceToTerminalExtension extends Extension {
         const showControls = !copilotNotification;
         const showCaption = this._phase === 'complete' || Boolean(copilotNotification);
         const activeSessions = this._getOpenCopilotSessions();
+        const attentionCount = activeSessions
+            .filter(session => session.status === 'attention').length;
         const firstActiveSession = activeSessions[0];
         const expanded = this._overlayVariant === 'expanded';
+        const showingHomeView = expanded && this._activePanelView === 'home';
         const activeSessionColor = firstActiveSession?.status === 'attention'
             ? PANEL_COLORS.attention
             : firstActiveSession?.status === 'error'
@@ -2515,9 +3060,6 @@ export default class VoiceToTerminalExtension extends Extension {
                 : firstActiveSession?.status === 'idle'
                     ? PANEL_COLORS.subtle
                     : PANEL_COLORS.copilotAccent;
-        if (expanded && !this._panelViewSelectedByUser && this._phase === 'idle'
-            && !copilotNotification && activeSessions.length > 0)
-            this._activePanelView = 'copilot';
         const showingCopilotView = expanded && this._activePanelView === 'copilot';
         const compactSessionStatus = this._overlayVariant === 'compact'
             && this._phase === 'idle' && firstActiveSession;
@@ -2531,20 +3073,55 @@ export default class VoiceToTerminalExtension extends Extension {
         const statusColor = copilotNotification
             ? COPILOT_NOTIFICATION_COLORS[copilotNotification.status] ?? PANEL_COLORS.accent
             : status === 'recording'
-                ? PANEL_COLORS.accent
+                ? PANEL_COLORS.accentText
                 : status === 'transcribing' ? PANEL_COLORS.blue
-                    : status === 'complete' ? PANEL_COLORS.accent
+                    : status === 'complete' ? PANEL_COLORS.accentText
                         : compactSessionStatus
                             ? activeSessionColor
                             : PANEL_COLORS.text;
         this._overlayLabel.style = `color: ${statusColor}; font-size: 15pt; font-weight: 700;`;
         if (this._panelHeading) {
-            this._panelHeading.text = showingCopilotView ? 'Copilot' : 'Dictado';
-            this._panelSubtitle.text = showingCopilotView
-                ? activeSessions.length
-                    ? `${activeSessions.length} sesiones abiertas`
-                    : 'Tus sesiones abiertas aparecerán acá'
-                : 'Texto local en la ventana activa';
+            this._panelHeading.text = showingHomeView
+                ? 'Inicio'
+                : showingCopilotView ? 'Copilot' : 'Dictado';
+            this._panelSubtitle.text = showingHomeView
+                ? 'Resumen de Airi y Copilot'
+                : showingCopilotView
+                    ? activeSessions.length
+                        ? attentionCount
+                            ? `${attentionCount} ${attentionCount === 1
+                                ? 'necesita respuesta'
+                                : 'necesitan respuesta'} · ${activeSessions.length} sesiones abiertas`
+                            : activeSessions.length === 1
+                                ? '1 sesión abierta'
+                                : `${activeSessions.length} sesiones abiertas`
+                        : 'Tus sesiones abiertas aparecerán acá'
+                    : 'Texto local en la ventana activa';
+        }
+        if (this._homeOverviewRow)
+            this._homeOverviewRow.visible = showingHomeView;
+        if (this._homeClockBox)
+            this._homeClockBox.visible = showingHomeView;
+        if (this._homeCopilotBox)
+            this._homeCopilotBox.visible = showingHomeView && !copilotNotification;
+        this._setHomeClockActive(Boolean(this._homeClockBox?.visible));
+        if (this._homeCopilotSummary) {
+            this._homeCopilotSummary.text = attentionCount
+                ? `${attentionCount} ${attentionCount === 1
+                    ? 'sesión necesita respuesta'
+                    : 'sesiones necesitan respuesta'}`
+                : activeSessions.length === 1
+                    ? '1 sesión abierta'
+                    : activeSessions.length
+                        ? `${activeSessions.length} sesiones abiertas`
+                        : 'Sin sesiones abiertas';
+            this._homeCopilotSummary.style = `color: ${attentionCount
+                ? PANEL_COLORS.attention
+                : activeSessions.length ? PANEL_COLORS.copilotAccent : PANEL_COLORS.muted}; font-size: 13pt; font-weight: 500;`;
+            this._homeCopilotDetail.text = firstActiveSession
+                ? firstActiveSession.sessionName || firstActiveSession.project
+                    || COPILOT_OVERVIEW_STATUS_LABELS[firstActiveSession.status]
+                : 'Tus sesiones abiertas aparecerán acá';
         }
         const sidebarStatus = copilotNotification
             ? copilotNotification.status === 'attention'
@@ -2570,34 +3147,58 @@ export default class VoiceToTerminalExtension extends Extension {
 
         for (const [view, navigation] of Object.entries(this._panelNavigationButtons ?? {})) {
             const selected = view === this._activePanelView;
+            const viewLabel = view === 'home'
+                ? 'Inicio'
+                : view === 'copilot' ? 'Copilot' : 'Dictado';
             const selectedColor = view === 'copilot'
-                ? PANEL_COLORS.copilotAccent
-                : PANEL_COLORS.accent;
+                ? PANEL_COLORS.copilotText
+                : PANEL_COLORS.accentText;
             const selectedSurface = view === 'copilot'
-                ? PANEL_COLORS.copilotSoft
+                ? PANEL_COLORS.copilotSurface
                 : PANEL_COLORS.accentSoft;
-            navigation.button.style = `background-color: ${selected ? selectedSurface : 'transparent'}; border: 0; border-radius: 12px; min-height: 44px; padding: 0;`;
+            const selectedBorder = view === 'copilot'
+                ? PANEL_COLORS.copilotBorder
+                : PANEL_COLORS.accentSoftBorder;
+            navigation.button.style = `background-color: ${selected ? selectedSurface : 'transparent'}; border: 1px solid ${selected ? selectedBorder : 'transparent'}; border-radius: 12px; min-height: 44px; padding: 0;`;
             navigation.icon.style = `color: ${selected ? selectedColor : PANEL_COLORS.muted};`;
             navigation.text.style = `color: ${selected ? selectedColor : PANEL_COLORS.muted}; font-size: 10pt; font-weight: 600;`;
-            navigation.button.accessible_name = `${selected ? 'Vista actual' : 'Mostrar'} ${view === 'copilot' ? 'Copilot' : 'Dictado'}`;
+            navigation.button.accessible_name = `${selected ? 'Vista actual' : 'Mostrar'} ${viewLabel}${view === 'copilot' && attentionCount
+                ? `, ${attentionCount} ${attentionCount === 1
+                    ? 'sesión necesita'
+                    : 'sesiones necesitan'} respuesta`
+                : ''}`;
             if (navigation.badge) {
-                navigation.badge.text = `${activeSessions.length}`;
-                navigation.badge.visible = activeSessions.length > 0;
-                navigation.badge.style = `color: ${activeSessionColor}; background-color: ${PANEL_COLORS.raised}; border-radius: 999px; padding: 2px 7px; font-size: 8pt;`;
+                navigation.badge.text = `${attentionCount}`;
+                navigation.badge.visible = attentionCount > 0;
+                navigation.badge.style = `color: ${attentionCount ? PANEL_COLORS.attention : PANEL_COLORS.muted}; background-color: ${attentionCount ? 'rgba(249,115,22,0.14)' : PANEL_COLORS.raised}; border-radius: 999px; padding: 2px 7px; font-size: 8pt;`;
             }
         }
         if (this._activeSessionsBox) {
-            this._activeSessionsBox.visible = showingCopilotView && !copilotNotification;
+            this._activeSessionsBox.visible = showingCopilotView;
+            this._copilotActivityLabels.clear();
             this._activeSessionsList.remove_all_children();
-            for (const session of activeSessions)
-                this._activeSessionsList.add_child(this._createActiveCopilotSessionRow(session));
+            for (const group of this._groupCopilotSessionsByProject(activeSessions)) {
+                this._activeSessionsList.add_child(
+                    this._createCopilotProjectHeading(group.project, group.sessions.length),
+                );
+                for (const session of group.sessions) {
+                    this._activeSessionsList.add_child(
+                        this._createActiveCopilotSessionRow(session),
+                    );
+                }
+            }
             this._activeSessionsScroll.visible = activeSessions.length > 0;
             this._activeSessionsEmptyState.visible = activeSessions.length === 0;
         }
+        this._setCopilotAmbienceActive(Boolean(this._activeSessionsBox?.visible));
         if (this._compactSessionSummary) {
-            const summary = activeSessions.length === 1
-                ? '1 sesión abierta de Copilot'
-                : `${activeSessions.length} sesiones abiertas de Copilot`;
+            const summary = attentionCount
+                ? `${attentionCount} ${attentionCount === 1
+                    ? 'sesión necesita respuesta'
+                    : 'sesiones necesitan respuesta'}`
+                : activeSessions.length === 1
+                    ? '1 sesión abierta de Copilot'
+                    : `${activeSessions.length} sesiones abiertas de Copilot`;
             this._compactSessionSummary.text = summary;
             this._compactSessionSummary.visible = activeSessions.length > 0
                 && this._phase === 'idle' && !copilotNotification;
@@ -2619,6 +3220,7 @@ export default class VoiceToTerminalExtension extends Extension {
         this._caption.visible = showCaption
             && (this._overlayVariant === 'compact'
                 || this._activePanelView === 'dictation'
+                || this._activePanelView === 'home'
                 || Boolean(copilotNotification));
         this._caption.style = `color: ${PANEL_COLORS.muted}; font-size: 10pt;`;
         this._controlFooter.visible = showControls;
@@ -2657,7 +3259,7 @@ export default class VoiceToTerminalExtension extends Extension {
         this._overlay.style = PANEL_OVERLAY_STYLES[this._overlayVariant][overlayState]
             .replace(/width:\s*\d+px;/, `width: ${overlayWidth}px;`);
         this._actionButton.style = this._phase === 'starting' || this._phase === 'stopping'
-            ? `background-color: ${PANEL_COLORS.surface}; border: 1px solid ${PANEL_COLORS.border}; border-radius: 999px; width: 48px; height: 48px; min-width: 48px; min-height: 48px; padding: 0;`
+            ? `background-color: ${PANEL_COLORS.raised}; border: 1px solid ${PANEL_COLORS.border}; border-radius: 999px; width: 48px; height: 48px; min-width: 48px; min-height: 48px; padding: 0;`
             : `background-color: ${PANEL_COLORS.accent}; border: 1px solid ${PANEL_COLORS.accentBorder}; border-radius: 999px; width: 48px; height: 48px; min-width: 48px; min-height: 48px; padding: 0;`;
 
         if (this._phase === 'idle' || this._phase === 'starting' || this._phase === 'complete') {
@@ -2750,11 +3352,212 @@ export default class VoiceToTerminalExtension extends Extension {
         }
     }
 
+    _loadCopilotAttentionReminders() {
+        if (!this._copilotAttentionRemindersPath)
+            return;
+
+        const file = Gio.File.new_for_path(this._copilotAttentionRemindersPath);
+        if (!file.query_exists(null))
+            return;
+
+        try {
+            const [success, contents] = file.load_contents(null);
+            if (!success)
+                throw new Error('No se pudo leer el archivo de recordatorios.');
+            const state = JSON.parse(new TextDecoder().decode(contents));
+            if (!state || typeof state !== 'object' || Array.isArray(state)
+                || !state.reminders || typeof state.reminders !== 'object'
+                || Array.isArray(state.reminders))
+                throw new Error('El archivo de recordatorios tiene un formato inválido.');
+            for (const [sessionId, remindAt] of Object.entries(state.reminders)) {
+                if (!sessionId || !Number.isFinite(remindAt) || remindAt <= 0)
+                    throw new Error('El archivo de recordatorios tiene un formato inválido.');
+                this._copilotAttentionReminders.set(sessionId, remindAt);
+            }
+        } catch (error) {
+            logError(error, 'Airi: no se pudieron cargar los recordatorios de Copilot');
+            Main.notifyError('Airi', `No se pudieron cargar los recordatorios de Copilot. ${error.message}`);
+        }
+    }
+
+    _saveCopilotAttentionReminders() {
+        if (!this._copilotAttentionRemindersPath)
+            return;
+
+        try {
+            const runtimeDirectory = GLib.getenv('XDG_RUNTIME_DIR');
+            if (!runtimeDirectory)
+                throw new Error('XDG_RUNTIME_DIR no está disponible.');
+            const directoryPath = GLib.build_filenamev([
+                runtimeDirectory, 'voice-to-terminal',
+            ]);
+            const directory = Gio.File.new_for_path(directoryPath);
+            if (!directory.query_exists(null))
+                directory.make_directory_with_parents(null);
+            const reminders = Object.fromEntries(
+                [...this._copilotAttentionReminders.entries()]
+                    .sort(([left], [right]) => left.localeCompare(right)),
+            );
+            const contents = new TextEncoder().encode(
+                `${JSON.stringify({ reminders })}\n`,
+            );
+            const [success] = Gio.File.new_for_path(this._copilotAttentionRemindersPath)
+                .replace_contents(
+                    contents,
+                    null,
+                    false,
+                    Gio.FileCreateFlags.REPLACE_DESTINATION,
+                    null,
+                );
+            if (!success)
+                throw new Error('No se pudo guardar el archivo de recordatorios.');
+        } catch (error) {
+            logError(error, 'Airi: no se pudieron guardar los recordatorios de Copilot');
+            Main.notifyError('Airi', `No se pudieron guardar los recordatorios de Copilot. ${error.message}`);
+        }
+    }
+
+    _scheduleCopilotAttentionReminder(sessionId, remindAt, delayOverride = null) {
+        if (!this._copilotAttentionRemindersPath
+            || this._copilotAttentionReminderTimers.has(sessionId))
+            return;
+
+        const delay = delayOverride ?? Math.max(
+            1,
+            Math.ceil(remindAt * 1000 - Date.now()),
+        );
+        const timer = GLib.timeout_add(GLib.PRIORITY_DEFAULT, delay, () => {
+            this._copilotAttentionReminderTimers.delete(sessionId);
+            this._fireCopilotAttentionReminder(sessionId, remindAt);
+            return GLib.SOURCE_REMOVE;
+        });
+        this._copilotAttentionReminderTimers.set(sessionId, timer);
+    }
+
+    _fireCopilotAttentionReminder(sessionId, remindAt) {
+        if (this._copilotAttentionReminders.get(sessionId) !== remindAt)
+            return;
+
+        const session = this._copilotStatusBySession.get(sessionId);
+        if (!session || session.status !== 'attention') {
+            this._clearCopilotAttentionReminder(sessionId);
+            return;
+        }
+        if (this._phase !== 'idle'
+            || (this._copilotNotification?.status === 'attention'
+                && this._copilotNotification.sessionId !== sessionId)) {
+            this._scheduleCopilotAttentionReminder(
+                sessionId,
+                remindAt,
+                COPILOT_ATTENTION_REMINDER_RETRY_MS,
+            );
+            return;
+        }
+
+        this._copilotAttentionReminders.delete(sessionId);
+        this._saveCopilotAttentionReminders();
+        const now = Date.now() / 1000;
+        this._showCopilotNotification({
+            ...session,
+            title: 'Copilot sigue esperando respuesta',
+            message: 'La sesión sigue esperando una respuesta en la terminal.',
+            createdAt: now,
+            updatedAt: now,
+        });
+    }
+
+    _snoozeCopilotAttention(sessionId) {
+        const session = this._copilotStatusBySession.get(sessionId);
+        if (!session || session.status !== 'attention')
+            return;
+
+        const timer = this._copilotAttentionReminderTimers.get(sessionId);
+        if (timer) {
+            GLib.source_remove(timer);
+            this._copilotAttentionReminderTimers.delete(sessionId);
+        }
+        const remindAt = Date.now() / 1000
+            + COPILOT_ATTENTION_REMINDER_DELAY_MS / 1000;
+        this._copilotAttentionReminders.set(sessionId, remindAt);
+        this._saveCopilotAttentionReminders();
+        this._scheduleCopilotAttentionReminder(sessionId, remindAt);
+        if (this._overlay)
+            this._updateOverlay();
+    }
+
+    _clearCopilotAttentionReminder(sessionId) {
+        const timer = this._copilotAttentionReminderTimers.get(sessionId);
+        if (timer) {
+            GLib.source_remove(timer);
+            this._copilotAttentionReminderTimers.delete(sessionId);
+        }
+        if (this._copilotAttentionReminders.delete(sessionId))
+            this._saveCopilotAttentionReminders();
+    }
+
+    _cancelCopilotAttentionReminderTimers() {
+        for (const timer of this._copilotAttentionReminderTimers.values())
+            GLib.source_remove(timer);
+        this._copilotAttentionReminderTimers.clear();
+    }
+
+    _reconcileCopilotAttentionReminders() {
+        let changed = false;
+        for (const sessionId of this._copilotAttentionReminders.keys()) {
+            const session = this._copilotStatusBySession.get(sessionId);
+            if (!session || session.status !== 'attention') {
+                this._copilotAttentionReminders.delete(sessionId);
+                const timer = this._copilotAttentionReminderTimers.get(sessionId);
+                if (timer) {
+                    GLib.source_remove(timer);
+                    this._copilotAttentionReminderTimers.delete(sessionId);
+                }
+                changed = true;
+            }
+        }
+        if (changed)
+            this._saveCopilotAttentionReminders();
+        for (const [sessionId, remindAt] of this._copilotAttentionReminders)
+            this._scheduleCopilotAttentionReminder(sessionId, remindAt);
+    }
+
+    _formatRelativeActivity(timestamp) {
+        const age = Math.max(0, Math.floor(Date.now() / 1000 - timestamp));
+        if (age < 60)
+            return 'Actualizada ahora';
+        if (age < 3600) {
+            const minutes = Math.floor(age / 60);
+            return `Actualizada hace ${minutes} min`;
+        }
+        if (age < 86400) {
+            const hours = Math.floor(age / 3600);
+            return `Actualizada hace ${hours} h`;
+        }
+        const days = Math.floor(age / 86400);
+        return `Actualizada hace ${days} d`;
+    }
+
+    _refreshCopilotActivityLabels() {
+        for (const [label, updatedAt] of this._copilotActivityLabels) {
+            const text = this._formatRelativeActivity(updatedAt);
+            if (label.text !== text)
+                label.text = text;
+        }
+    }
+
+    _formatCopilotReminderTime(timestamp) {
+        return new Date(timestamp * 1000).toLocaleTimeString(undefined, {
+            hour: '2-digit',
+            minute: '2-digit',
+        });
+    }
+
     _pollCopilotNotifications() {
         if (this._disposed || this._phase !== 'idle' || !this._copilotNotificationDirectory)
             return;
 
         this._syncCopilotActiveSessions();
+        this._refreshCopilotActivityLabels();
         const directory = Gio.File.new_for_path(this._copilotNotificationDirectory);
         if (!directory.query_exists(null))
             return;
@@ -2816,6 +3619,9 @@ export default class VoiceToTerminalExtension extends Extension {
                     || !OPEN_COPILOT_SESSION_STATUSES.includes(session.status)
                     || (session.sessionName !== undefined
                         && typeof session.sessionName !== 'string')
+                    || (session.project !== undefined && typeof session.project !== 'string')
+                    || (session.updatedAt !== undefined
+                        && !Number.isFinite(session.updatedAt))
                     || !Number.isFinite(session.createdAt))
                     throw new Error('El estado de las sesiones activas tiene un formato inválido.');
                 activeSessions.set(session.sessionId, {
@@ -2829,10 +3635,11 @@ export default class VoiceToTerminalExtension extends Extension {
                                 ? 'Copilot terminó'
                                 : 'Copilot trabajando',
                     message: '',
-                    project: '',
+                    project: session.project?.trim().slice(0, 80) ?? '',
                     sessionName: session.sessionName?.trim().slice(0, 120) ?? '',
                     taskSummary: '',
                     createdAt: session.createdAt,
+                    updatedAt: session.updatedAt ?? session.createdAt,
                 });
             }
 
@@ -2841,6 +3648,7 @@ export default class VoiceToTerminalExtension extends Extension {
                 if (OPEN_COPILOT_SESSION_STATUSES.includes(record.status)
                     && !activeSessions.has(sessionId)) {
                     this._copilotStatusBySession.delete(sessionId);
+                    this._clearCopilotAttentionReminder(sessionId);
                     changed = true;
                 }
             }
@@ -2848,7 +3656,9 @@ export default class VoiceToTerminalExtension extends Extension {
                 const current = this._copilotStatusBySession.get(sessionId);
                 if (!current || current.status !== record.status
                     || current.sessionName !== record.sessionName
-                    || current.createdAt !== record.createdAt) {
+                    || current.project !== record.project
+                    || current.createdAt !== record.createdAt
+                    || current.updatedAt !== record.updatedAt) {
                     this._copilotStatusBySession.set(sessionId, {
                         ...current,
                         ...record,
@@ -2856,6 +3666,7 @@ export default class VoiceToTerminalExtension extends Extension {
                     changed = true;
                 }
             }
+            this._reconcileCopilotAttentionReminders();
 
             if (changed) {
                 this._updateFloatingRobot();
@@ -2929,11 +3740,14 @@ export default class VoiceToTerminalExtension extends Extension {
             status,
             title: event.title,
             message: event.message,
-            project: event.project,
+            project: event.project?.trim() || previous?.project || '',
             sessionName: event.sessionName || previous?.sessionName || '',
             taskSummary: event.taskSummary || previous?.taskSummary || '',
-            createdAt: event.createdAt,
+            createdAt: previous?.createdAt ?? event.createdAt,
+            updatedAt: event.updatedAt ?? event.createdAt,
         };
+        if (status !== 'attention')
+            this._clearCopilotAttentionReminder(sessionId);
         if (status === 'idle')
             this._copilotStatusBySession.delete(sessionId);
         else
@@ -2943,6 +3757,7 @@ export default class VoiceToTerminalExtension extends Extension {
             this._triggerFloatingReaction('festejo');
 
         if (status === 'attention') {
+            this._clearCopilotAttentionReminder(sessionId);
             this._showCopilotNotification(record);
             this._updateFloatingRobot();
             return;
@@ -2980,13 +3795,13 @@ export default class VoiceToTerminalExtension extends Extension {
         this._cancelCopilotDismiss();
         this._copilotNotification = notification;
         this._activePanelView = 'copilot';
-        this._panelViewSelectedByUser = false;
         this._cancelOverlayHide();
         const anchor = this._floatingRobotVisible && this._floatingButton
             ? this._floatingButton
             : this._recordButton ?? this._floatingButton;
-        if (!this._overlay || this._overlayAnchor !== anchor)
-            this._showOverlay(anchor);
+        if (!this._overlay || this._overlayAnchor !== anchor
+            || this._overlayVariant !== 'compact')
+            this._showOverlay(anchor, 'compact');
         else {
             this._updateOverlay();
             this._positionOverlay();
@@ -3165,6 +3980,8 @@ export default class VoiceToTerminalExtension extends Extension {
     _stopTimers() {
         this._stopDotsTimer();
         this._stopMeter();
+        this._stopHomeClock();
+        this._stopCopilotAmbience();
         this._cancelResultDismiss();
         this._cancelCopilotDismiss();
     }
@@ -3177,6 +3994,8 @@ export default class VoiceToTerminalExtension extends Extension {
     }
 
     _destroyOverlayActor() {
+        this._stopHomeClock();
+        this._stopCopilotAmbience();
         if (!this._overlay)
             return;
         Main.layoutManager.removeChrome(this._overlay);
@@ -3188,6 +4007,16 @@ export default class VoiceToTerminalExtension extends Extension {
         this._statusRow = null;
         this._panelHeading = null;
         this._panelSubtitle = null;
+        this._homeOverviewRow = null;
+        this._homeClockBox = null;
+        this._homeTimeLabel = null;
+        this._homeDateLabel = null;
+        this._homeCopilotBox = null;
+        this._homeCopilotSummary = null;
+        this._homeCopilotDetail = null;
+        this._homeCopilotQuotaSummary = null;
+        this._homeCopilotQuotaDetail = null;
+        this._homeCopilotButton = null;
         this._panelNavigationButtons = {};
         this._sidebarStatusDot = null;
         this._sidebarStatusLabel = null;
@@ -3195,6 +4024,8 @@ export default class VoiceToTerminalExtension extends Extension {
         this._activeSessionsScroll = null;
         this._activeSessionsList = null;
         this._activeSessionsEmptyState = null;
+        this._copilotAmbienceLayer = null;
+        this._copilotAmbienceNodes = [];
         this._compactSessionSummary = null;
         this._sessionTitle = null;
         this._caption = null;
@@ -3219,6 +4050,7 @@ export default class VoiceToTerminalExtension extends Extension {
         this._stopTimers();
         this._cancelOverlayHide();
         this._clearCopilotNotification();
+        this._copilotActivityLabels.clear();
         if (!this._overlay)
             return;
 

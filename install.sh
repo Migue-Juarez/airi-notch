@@ -16,6 +16,8 @@ LINK="$LOCAL_BIN/voice-to-terminal"
 EXTENSION_UUID="voice-to-terminal@migue.local"
 EXTENSION_SOURCE="$PROJECT_ROOT/gnome-shell-extension"
 EXTENSION_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/gnome-shell/extensions/$EXTENSION_UUID"
+COPILOT_QUOTA_SOURCE="$PROJECT_ROOT/copilot-quota"
+COPILOT_QUOTA_DIR="$APP_HOME/copilot-quota"
 WHISPER_COMMIT="d1be6fde11ac6e0407606b4e42fe72d34add8037"
 MODEL_SHA1="465707469ff3a37a2b9b8d8f89f2f99de7299dac"
 MODEL_URL="https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin"
@@ -119,6 +121,33 @@ if [[ "$PROJECT_ROOT/text_processing.py" != "$APP_HOME/text_processing.py" ]]; t
 fi
 chmod 755 "$ENTRYPOINT"
 ln -sfn "$ENTRYPOINT" "$LINK"
+
+[[ -f "$COPILOT_QUOTA_SOURCE/package.json" \
+    && -f "$COPILOT_QUOTA_SOURCE/package-lock.json" \
+    && -f "$COPILOT_QUOTA_SOURCE/read-quota.mjs" ]] ||
+    die "No están los archivos del lector de cuota de Copilot."
+mkdir -p "$COPILOT_QUOTA_DIR"
+install -m 644 "$COPILOT_QUOTA_SOURCE/package.json" \
+    "$COPILOT_QUOTA_SOURCE/package-lock.json" \
+    "$COPILOT_QUOTA_SOURCE/read-quota.mjs" "$COPILOT_QUOTA_DIR/"
+if command -v node >/dev/null 2>&1 && command -v npm >/dev/null 2>&1; then
+    npm ci --prefix "$COPILOT_QUOTA_DIR" --omit=dev --no-audit --no-fund
+else
+    printf '%s\n' "Aviso: Node.js/npm no está disponible; no se instalará la consulta de cuota de Copilot."
+fi
+COPILOT_QUOTA_NODE_PATH="$(command -v node || true)"
+COPILOT_QUOTA_CLI_PATH="$(printenv COPILOT_CLI_PATH || true)"
+if [[ -z "$COPILOT_QUOTA_CLI_PATH" || ! -x "$COPILOT_QUOTA_CLI_PATH" ]]; then
+    COPILOT_QUOTA_CLI_PATH="$(command -v copilot || true)"
+fi
+if [[ -n "$COPILOT_QUOTA_NODE_PATH" && -x "$COPILOT_QUOTA_NODE_PATH" ]]; then
+    printf '%s\n' "$COPILOT_QUOTA_NODE_PATH" > "$COPILOT_QUOTA_DIR/node-path"
+    chmod 600 "$COPILOT_QUOTA_DIR/node-path"
+fi
+if [[ -n "$COPILOT_QUOTA_CLI_PATH" && -x "$COPILOT_QUOTA_CLI_PATH" ]]; then
+    printf '%s\n' "$COPILOT_QUOTA_CLI_PATH" > "$COPILOT_QUOTA_DIR/copilot-cli-path"
+    chmod 600 "$COPILOT_QUOTA_DIR/copilot-cli-path"
+fi
 
 [[ -f "$EXTENSION_SOURCE/metadata.json" && -f "$EXTENSION_SOURCE/extension.js" && -f "$EXTENSION_SOURCE/robot-idle.png" && -f "$EXTENSION_SOURCE/robot-idle-open.png" && -f "$EXTENSION_SOURCE/robot-listening.png" && -f "$EXTENSION_SOURCE/robot-processing.png" && -f "$EXTENSION_SOURCE/robot-success.png" && -f "$EXTENSION_SOURCE/robot-frente-vacio.png" && -f "$EXTENSION_SOURCE/robot-34-vacio.png" && -f "$EXTENSION_SOURCE/microphone.svg" ]] ||
     die "No están los archivos de la extensión GNOME."
