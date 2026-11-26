@@ -254,6 +254,7 @@ function harness(files = new Map()) {
         - Number(Boolean(extension._floatingSaccadeRestoreTimer))
         - Number(Boolean(extension._copilotNotificationTimer))
         - Number(Boolean(extension._copilotAmbienceTimer))
+        - Number(Boolean(extension._copilotQuotaTimeoutTimer))
         - Number(Boolean(extension._homeClockTimer))
         - Number(Boolean(extension._panelCenteringTimer));
     return {
@@ -262,6 +263,17 @@ function harness(files = new Map()) {
         chromeActors, activeTimerCount, files, main: Main, stage, stageSignals,
         statusAreaAdds,
     };
+}
+
+function expireQuotaRequest(h) {
+    const timerId = h.extension._copilotQuotaTimeoutTimer;
+    assert.ok(timerId);
+    assert.equal(h.timerDelays.get(timerId), 30_000);
+    const callback = h.timers.get(timerId);
+    assert.ok(callback);
+    assert.equal(callback(), false);
+    h.timers.delete(timerId);
+    h.timerDelays.delete(timerId);
 }
 
 function assertFloatingRobotHasNoBadge(button) {
@@ -470,6 +482,7 @@ test('Home displays Copilot quota usage and marks the SDK resetDate unconfirmed'
     assert.match(h.extension._homeCopilotQuotaDetail.text, /34,4% disponibles/);
     assert.match(h.extension._homeCopilotQuotaDetail.text, /resetDate del SDK \(no confirmado\)/);
     assert.match(h.extension._homeCopilotQuotaDetail.text, /consulta/);
+    assert.equal(h.extension._copilotQuotaTimeoutTimer, 0);
     h.extension.disable();
 });
 
@@ -480,6 +493,49 @@ test('Home reports when the Copilot quota request fails', () => {
 
     assert.equal(h.extension._homeCopilotQuotaSummary.text, 'Cuota de Copilot no disponible');
     assert.match(h.extension._homeCopilotQuotaDetail.text, /Revisá la conexión/);
+    h.extension.disable();
+});
+
+test('Home reports when the Copilot quota request times out', () => {
+    const h = harness();
+    h.extension._recordButton.events.clicked();
+    expireQuotaRequest(h);
+
+    assert.equal(h.extension._copilotQuotaInFlight, false);
+    assert.equal(h.extension._copilotQuotaProcess, null);
+    assert.equal(h.extension._homeCopilotQuotaSummary.text, 'Cuota de Copilot no disponible');
+    assert.match(h.extension._homeCopilotQuotaDetail.text, /superó el límite de tiempo/);
+    h.extension.disable();
+});
+
+test('Home keeps the last Copilot quota and marks it stale after a timeout', () => {
+    const h = harness();
+    h.extension._recordButton.events.clicked();
+    h.finishQuota(true, JSON.stringify({
+        fetchedAt: '2026-11-26T14:17:18.288Z',
+        quotaSnapshots: {
+            premium_interactions: {
+                usedRequests: 9840,
+                entitlementRequests: 15000,
+                remainingPercentage: 34.4,
+            },
+        },
+    }));
+
+    h.extension._copilotQuotaLastRequestedAt = 0;
+    h.extension._refreshCopilotQuota();
+    const timedOutProcess = h.extension._copilotQuotaProcess;
+    expireQuotaRequest(h);
+
+    assert.equal(timedOutProcess.killed, true);
+    assert.equal(h.extension._copilotQuotaInFlight, false);
+    assert.match(h.extension._homeCopilotQuotaSummary.text,
+        /9\.840 \/ 15\.000 usados · 5\.160 restantes/);
+    assert.match(h.extension._homeCopilotQuotaDetail.text, /Dato desactualizado/);
+    assert.match(h.extension._homeCopilotQuotaDetail.text, /consulta/);
+
+    h.finishQuota(false);
+    assert.match(h.extension._homeCopilotQuotaDetail.text, /Dato desactualizado/);
     h.extension.disable();
 });
 

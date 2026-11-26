@@ -75,6 +75,7 @@ const COPILOT_CARD_RESIZE_DURATION_MS = 380;
 const COPILOT_AMBIENCE_INTERVAL_MS = 100;
 const HOME_CLOCK_INTERVAL_MS = 60 * 1000;
 const COPILOT_QUOTA_REFRESH_INTERVAL_MS = 5 * 60 * 1000;
+const COPILOT_QUOTA_REQUEST_TIMEOUT_MS = 30 * 1000;
 const COPILOT_NOTIFICATION_DURATION_MS = 5000;
 const COPILOT_NOTIFICATION_MAX_AGE_SECONDS = 120;
 const COPILOT_ATTENTION_REMINDER_DELAY_MS = 5 * 60 * 1000;
@@ -328,6 +329,7 @@ export default class VoiceToTerminalExtension extends Extension {
         this._homeCopilotButton = null;
         this._copilotQuotaPayload = null;
         this._copilotQuotaProcess = null;
+        this._copilotQuotaTimeoutTimer = 0;
         this._copilotQuotaInFlight = false;
         this._copilotQuotaLastRequestedAt = 0;
         this._copilotQuotaError = null;
@@ -2606,20 +2608,48 @@ export default class VoiceToTerminalExtension extends Extension {
             return;
         }
 
-        process.communicate_utf8_async(null, null, (subprocess, result) => {
-            if (this._copilotQuotaProcess === subprocess)
+        this._copilotQuotaTimeoutTimer = GLib.timeout_add(
+            GLib.PRIORITY_DEFAULT,
+            COPILOT_QUOTA_REQUEST_TIMEOUT_MS,
+            () => {
+                this._copilotQuotaTimeoutTimer = 0;
+                if (this._copilotQuotaProcess !== process)
+                    return GLib.SOURCE_REMOVE;
+
+                const error = new Error('La consulta de cuota superó el tiempo de espera.');
+                error.name = 'TimeoutError';
                 this._copilotQuotaProcess = null;
+                this._copilotQuotaInFlight = false;
+                this._copilotQuotaError = error;
+                process.force_exit();
+                logError(error, 'Airi: la consulta de cuota de Copilot agotó el tiempo');
+                this._renderCopilotQuota();
+                return GLib.SOURCE_REMOVE;
+            },
+        );
+        process.communicate_utf8_async(null, null, (subprocess, result) => {
+            let stdout = '';
+            let stderr = '';
+            let communicationError = null;
+            try {
+                [, stdout, stderr] = subprocess.communicate_utf8_finish(result);
+            } catch (error) {
+                communicationError = error;
+            }
+            if (this._copilotQuotaProcess !== subprocess)
+                return;
+            if (this._copilotQuotaTimeoutTimer) {
+                GLib.source_remove(this._copilotQuotaTimeoutTimer);
+                this._copilotQuotaTimeoutTimer = 0;
+            }
+            this._copilotQuotaProcess = null;
             this._copilotQuotaInFlight = false;
             if (this._disposed || lifecycle !== this._lifecycle)
                 return;
 
-            let stdout = '';
-            let stderr = '';
-            try {
-                [, stdout, stderr] = subprocess.communicate_utf8_finish(result);
-            } catch (error) {
-                this._copilotQuotaError = error;
-                logError(error, 'Airi: no se pudo leer la cuota de Copilot');
+            if (communicationError) {
+                this._copilotQuotaError = communicationError;
+                logError(communicationError, 'Airi: no se pudo leer la cuota de Copilot');
                 this._renderCopilotQuota();
                 return;
             }
@@ -2649,13 +2679,15 @@ export default class VoiceToTerminalExtension extends Extension {
         if (!this._homeCopilotQuotaSummary || !this._homeCopilotQuotaDetail)
             return;
 
-        if (this._copilotQuotaError) {
+        const snapshot = this._copilotQuotaPayload?.quotaSnapshots?.premium_interactions;
+        if (this._copilotQuotaError && !snapshot) {
             this._homeCopilotQuotaSummary.text = 'Cuota de Copilot no disponible';
-            this._homeCopilotQuotaDetail.text = 'Revisá la conexión y la sesión del CLI';
+            this._homeCopilotQuotaDetail.text = this._copilotQuotaError.name === 'TimeoutError'
+                ? 'La consulta superó el límite de tiempo; se volverá a intentar.'
+                : 'Revisá la conexión y la sesión del CLI';
             return;
         }
 
-        const snapshot = this._copilotQuotaPayload?.quotaSnapshots?.premium_interactions;
         if (!snapshot) {
             this._homeCopilotQuotaSummary.text = this._copilotQuotaInFlight
                 ? 'Consultando cuota de Copilot…'
@@ -2687,6 +2719,10 @@ export default class VoiceToTerminalExtension extends Extension {
             }).format(snapshot.remainingPercentage);
             detail.push(`${percentage}% disponibles`);
         }
+        if (this._copilotQuotaError)
+            detail.push('Dato desactualizado');
+        else if (this._copilotQuotaInFlight)
+            detail.push('Actualizando');
         if (snapshot.resetDate) {
             const resetTimestamp = Date.parse(snapshot.resetDate);
             const resetDate = Number.isFinite(resetTimestamp)
@@ -2714,6 +2750,10 @@ export default class VoiceToTerminalExtension extends Extension {
     }
 
     _stopCopilotQuotaQuery() {
+        if (this._copilotQuotaTimeoutTimer) {
+            GLib.source_remove(this._copilotQuotaTimeoutTimer);
+            this._copilotQuotaTimeoutTimer = 0;
+        }
         if (!this._copilotQuotaProcess)
             return;
         this._copilotQuotaProcess.force_exit();
